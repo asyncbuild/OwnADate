@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DateStatus{
+  AVAILABLE
+  LOCKED
+}
+
+enum Category{
+  Love
+  Birthday
+  Aniversary
+  Milestone
+  Memory
+  Special
+}
+
+enum PaymentStatus{
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model DateEntry{
+  dateKey   String @id @db.VarChar(10)
+  month     Int
+  day       Int
+  isPremium Boolean     @default(false)
+  status    DateStatus  @default(AVAILABLE)
+  createdAt DateTime    @default(now())
+  
+  claim     Claim?
+  orders    Order[]
+
+  @@map("dates")
+}
+
+model Claim {
+  id            String    @id @default(uuid())
+  certificateId String    @unique @db.VarChar(50) // e.g. "CERT-FEB14-8492"
+  dateKey       String    @unique @db.VarChar(10)
+  ownerName     String    @db.VarChar(100)
+  initial       String    @db.VarChar(5)
+  isGift        Boolean   @default(false)
+  senderName    String?   @db.VarChar(100)
+  buyerEmail    String    @db.VarChar(255)
+  title         String    @db.VarChar(200)
+  story         String    @db.Text
+  category      Category  @default(Memory)
+  link          String?   @db.VarChar(500)
+  pricePaid     Int       // In paise: 49900 or 99900
+  paymentId     String    @unique @db.VarChar(100)
+  claimedAt     DateTime  @default(now())
+
+  dateEntry     DateEntry  @relation(fields: [dateKey], references: [dateKey])
+  activities    Activity[]
+
+  @@index([certificateId])
+  @@index([dateKey])
+  @@map("claims")
+}
+
+model Order {
+  id            String        @id // Razorpay order_id
+  dateKey       String        @db.VarChar(10)
+  amount        Int           // In paise
+  currency      String        @default("INR")
+  status        PaymentStatus @default(PENDING)
+  name          String        @db.VarChar(100)
+  isGift        Boolean       @default(false)
+  senderName    String?       @db.VarChar(100)
+  buyerEmail    String        @db.VarChar(255)
+  title         String        @db.VarChar(200)
+  story         String        @db.Text
+  category      Category      @default(Memory)
+  link          String?       @db.VarChar(500)
+  paymentId     String?       @db.VarChar(100)
+  signature     String?       @db.VarChar(255)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  dateEntry     DateEntry     @relation(fields: [dateKey], references: [dateKey])
+
+  @@map("orders")
+}
+
+model Activity {
+  id         String   @id @default(uuid())
+  claimId    String
+  action     String   @db.VarChar(20) // "claimed" or "gifted"
+  actorName  String   @db.VarChar(100)
+  initial    String   @db.VarChar(5)
+  dateLabel  String   @db.VarChar(50) // e.g. "February 14"
+  title      String   @db.VarChar(200)
+  price      Int      // In INR (499 or 999)
+  createdAt  DateTime @default(now())
+
+  claim      Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("activities")
+}

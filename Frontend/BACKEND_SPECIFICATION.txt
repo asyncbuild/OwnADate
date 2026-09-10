@@ -1,0 +1,170 @@
+================================================================================
+                        OWN A DATE - SPECIFICATION & BACKEND PLAN
+================================================================================
+
+1. COMPLETE FRONTEND FEATURE INVENTORY
+--------------------------------------------------------------------------------
+
+A. Master 366-Day Interactive Calendar Grid
+   - Renders all 12 months with exact leap-year (366 days) date grid support.
+   - Tiered Pricing System: Standard Dates (₹499) vs Premium Holiday Dates (₹999).
+   - Unclaimed Dates: Display day numbers (1-31). Premium dates highlight a gold 
+     sparkle icon.
+   - Claimed Dates: Replaces date number with the owner's 1st letter (e.g. 'P' for 
+     Priya) inside a rounded date square. Styled in the owner's category color.
+
+B. Category Color Theme System
+   - Supports 6 distinct life occasion categories:
+     * Love ❤️ (Soft Rose Tint & Rose Border)
+     * Birthday 🎂 (Soft Amber Tint & Amber Border)
+     * Anniversary 💖 (Soft Pink Tint & Pink Border)
+     * Milestone 🎓 (Soft Indigo Tint & Indigo Border)
+     * Memory 💜 (Soft Violet Tint & Violet Border)
+     * Special ✨ (Soft Emerald Tint & Emerald Border)
+
+C. Permanent Claim & Gifting Checkout Modal (DateModal)
+   - Toggle selection between:
+     * "For Myself"
+     * "Gift to Someone"
+   - Guest Form Inputs:
+     * Recipient's Name (Owner)
+     * Gifter's Name (if gifted)
+     * Buyer's Email (for certificate delivery & receipt)
+     * Title / Occasion Name
+     * Category Dropdown Selection
+     * Story / Heartfelt Dedication Message
+     * Custom Link (Optional portfolio/social URL)
+   - Price calculation: Automatic calculation of ₹499 (Standard) or ₹999 (Premium).
+   - For already claimed dates: Shows permanent lock status, category badge, and a 
+     direct "View Certificate ->" button.
+
+D. Dedicated Date Certificate Page (/date/:dateKey)
+   - Full page view rendering an official Certificate of Ownership.
+   - Features:
+     * Official Registry Seal & Unique Certificate ID (e.g., CERT-FEB14-001)
+     * Dedicated Owner / Recipient Name & Gifting Line ("Dedicated with love by...")
+     * Engraved Title & Story plaque
+     * Instant Print / Save PDF functionality (window.print())
+     * Native Web Share & Copy Link button with confirmation feedback
+     * Back to Calendar navigation button
+
+E. Dedicated About & Rules & Guidelines Pages
+   - Full page view accessible from the top navbar ("About" & "Rules & FAQ").
+   - Tab 1 (About):
+     * "Every day belongs to someone" narrative
+     * 4 feature cards (Pick Your Date, Personalize Dedication, Permanent Ownership, 
+       Instant Digital Certificate)
+     * "Why We Built This" background story
+   - Tab 2 (Rules & Registry Guidelines):
+     * 1. Permanent Ownership Policy (One owner per date, no takeovers, all sales final)
+     * 2. Pricing & Payments (Standard ₹499, Premium ₹999, no subscription)
+     * 3. Content & Dedication Standards (Prohibited content guidelines)
+     * 4. The Certificate & Dedicated Link specs
+
+F. Real-Time Activity Feed & Layout
+   - Live Activity Feed: Displays recent claims and gifts with time-ago indicators, 
+     names, dates, and category icons.
+   - Sidebar Stats: Displays Total Calendar Dates (366) and Claimed Count.
+   - Category Legend: Interactive category key pills in the sidebar.
+
+
+================================================================================
+2. BACKEND ARCHITECTURE & IMPLEMENTATION SPECIFICATION
+================================================================================
+
+A. Recommended Technology Stack
+   - Language/Framework: Node.js with TypeScript (Express.js or NestJS)
+   - Database: PostgreSQL (via Supabase, Neon, or Railway)
+   - ORM: Prisma ORM or Drizzle ORM
+   - Payment Gateway: Razorpay (or Stripe) for INR/global payments
+   - Email Service: Resend or SendGrid (for sending certificate links & PDFs)
+   - Hosting: Vercel / Render / Railway
+
+B. Database Schema Design (PostgreSQL / Prisma)
+
+   1. Table: `dates` (Master 366 Calendar Entries)
+      -------------------------------------------------------------------
+      Field            Type            Description
+      -------------------------------------------------------------------
+      date_key         VARCHAR(10)     PRIMARY KEY (e.g., "2020-02-14")
+      month            INT             Month index (0-11)
+      day              INT             Day number (1-31)
+      is_premium       BOOLEAN         True for holidays (₹999), False (₹499)
+      status           ENUM            'AVAILABLE', 'LOCKED' (Default: 'AVAILABLE')
+      created_at       TIMESTAMP       Record creation timestamp
+
+   2. Table: `claims` / `certificates` (Permanent Ownership Records)
+      -------------------------------------------------------------------
+      Field            Type            Description
+      -------------------------------------------------------------------
+      id               UUID            PRIMARY KEY (Default: gen_random_uuid())
+      certificate_id   VARCHAR(50)     UNIQUE (e.g., "CERT-FEB14-8492")
+      date_key         VARCHAR(10)     FOREIGN KEY -> dates.date_key (UNIQUE)
+      owner_name       VARCHAR(100)    Recipient / Owner Name
+      initial          VARCHAR(5)      First character of owner name
+      is_gift          BOOLEAN         True if gifted by someone else
+      sender_name      VARCHAR(100)    Gifter Name (Optional)
+      buyer_email      VARCHAR(255)    Buyer's email address
+      title            VARCHAR(200)    Occasion Title
+      story            TEXT            Dedication Story / Message
+      category         VARCHAR(50)     'Love', 'Birthday', 'Anniversary', etc.
+      link             VARCHAR(500)    Custom URL (Optional)
+      price_paid       INT             Amount paid in INR (499 or 999)
+      payment_id       VARCHAR(100)    Razorpay/Stripe Payment ID
+      payment_status   ENUM            'PENDING', 'PAID', 'FAILED'
+      claimed_at       TIMESTAMP       Timestamp of verified purchase
+
+   3. Table: `activities` (Live Feed Log)
+      -------------------------------------------------------------------
+      Field            Type            Description
+      -------------------------------------------------------------------
+      id               UUID            PRIMARY KEY
+      claim_id         UUID            FOREIGN KEY -> claims.id
+      action           VARCHAR(20)     'claimed' or 'gifted'
+      actor_name       VARCHAR(100)    Buyer/Sender name
+      initial          VARCHAR(5)      Initial character
+      date_label       VARCHAR(50)     e.g., "February 14"
+      title            VARCHAR(200)    Occasion title
+      price            INT             Price paid
+      created_at       TIMESTAMP       Creation time for feed sorting
+
+C. API Endpoints Specification
+
+   1. GET /api/dates
+      - Description: Fetches all 366 calendar cells with claim status and owner data.
+      - Response: Array of DateCell objects with `isPremium` and `owner` object if claimed.
+
+   2. GET /api/dates/:dateKey
+      - Description: Fetches public certificate data for a specific date (e.g., /api/dates/2020-02-14).
+      - Response: Owner details, certificate ID, claimedAt timestamp, and story plaque data.
+
+   3. POST /api/payment/create-order
+      - Description: Initiates checkout order with Razorpay/Stripe.
+      - Body: `{ dateKey, isGift, name, senderName, buyerEmail, title, story, category, link }`
+      - Validation: Checks if `dateKey` is currently 'AVAILABLE'.
+      - Action: Calculates price (₹499 or ₹999), creates pending order in payment gateway.
+
+   4. POST /api/payment/verify-webhook (Payment Webhook)
+      - Description: Listens to Razorpay/Stripe payment success webhook.
+      - Action (Atomic Transaction):
+        a. Verify payment signature.
+        b. Execute `SELECT FOR UPDATE` on `dates` table for `dateKey`.
+        c. If `status` is 'AVAILABLE', update `status = 'LOCKED'`.
+        d. Insert record into `claims` table with generated `certificate_id`.
+        e. Insert record into `activities` feed table.
+        f. Trigger automated email with the recipient's certificate link.
+
+   5. GET /api/activities
+      - Description: Fetches recent 10 activity log items for the live sidebar feed.
+
+D. Crucial Security & Concurrency Guidelines
+   1. Race Condition Prevention (Strict Single Ownership):
+      Use PostgreSQL row-level locking (`SELECT FOR UPDATE`) during payment verification 
+      so two simultaneous buyers for the same date cannot both claim it.
+   2. Input Sanitization & Safety:
+      Sanitize `title`, `story`, and `link` inputs to prevent XSS attacks and filter 
+      prohibited content as outlined in Section 3 of the Registry Rules.
+   3. OpenGraph Social Sharing (SEO & Social Cards):
+      Set up Dynamic Meta Tags (Server-Side Rendering or Edge Functions) for 
+      `/date/:dateKey` so sharing certificate links on WhatsApp, Twitter, or Instagram 
+      previews a custom preview card with the owner's name and date.
