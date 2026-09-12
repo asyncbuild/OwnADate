@@ -38,10 +38,8 @@ export function MonthCard({
             {day}
           </div>
         ))}
-      </div>
 
       {/* Dates */}
-      <div className="grid grid-cols-7 gap-[3px]">
         {cells.map((cell, cellIndex) => {
           if (cell.day === 0) {
             return <div key={cell.dateKey} className="aspect-square" />;
@@ -78,24 +76,24 @@ export function MonthCard({
                   <img
                     src={cell.owner.imageUrl}
                     alt={cell.owner.name}
-                    className="h-full w-full rounded-lg object-cover"
+                    className="absolute inset-0 z-0 h-full w-full rounded-lg object-cover"
                   />
                 ) : (
-                  <span className="leading-none text-[10px] font-black">
+                  <span className="relative z-10 leading-none text-[10px] font-black">
                     {isOwned ? cell.owner?.initial : cell.day}
                   </span>
                 )}
 
                 {/* Subtle Gift Icon Badge if gifted */}
                 {isOwned && cell.owner?.isGift && (
-                  <span className="absolute top-0.5 right-0.5 text-rose-500">
+                  <span className="absolute right-0.5 top-0.5 z-10 text-rose-500">
                     <Gift size={7} />
                   </span>
                 )}
 
                 {/* Premium Sparkle Icon for Unclaimed Premium Dates */}
                 {!isOwned && cell.isPremium && (
-                  <span className="absolute top-0.5 right-0.5 text-amber-500">
+                  <span className="absolute right-0.5 top-0.5 z-10 text-amber-500">
                     <Sparkles size={7} />
                   </span>
                 )}
