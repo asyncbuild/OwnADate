@@ -13,6 +13,7 @@ import {
 import type { DateCell, Category } from "../../types/calendar";
 import { formatDate } from "../../utils/calendar";
 import { STANDARD_PRICE, PREMIUM_PRICE } from "../../constants/calendar";
+import { apiUrl } from "../../config/api";
 
 interface DateModalProps {
   date: DateCell;
@@ -45,7 +46,7 @@ export function DateModal({
   const displayPrice = currency === "INR" ? price : date.isPremium ? 14.99 : 8.99;
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/geo")
+    fetch(apiUrl("/api/geo"))
       .then((res) => res.json())
       .then((data) => setCurrency(data.currency || "INR"))
       .catch(() => setCurrency("INR"));
@@ -65,21 +66,18 @@ export function DateModal({
     setImagePreview(URL.createObjectURL(file));
   };
 
-  const uploadToCloudinary = async (file: File): Promise<string | null> => {
-    const cloudName = "xajjsy9j";
-    const uploadPreset = "l3wtku4u";
+  const uploadImage = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", uploadPreset);
 
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      { method: "POST", body: formData }
-    );
-
-    if (!res.ok) throw new Error("Image upload failed");
+    const res = await fetch(apiUrl("/api/upload"), {
+      method: "POST",
+      body: formData,
+    });
     const data = await res.json();
-    return data.secure_url;
+
+    if (!res.ok) throw new Error(data.error || "Image upload failed");
+    return data.imageUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,11 +88,11 @@ export function DateModal({
       let uploadedImageUrl = "";
       if (imageFile) {
         setUploadingImage(true);
-        uploadedImageUrl = (await uploadToCloudinary(imageFile)) || "";
+        uploadedImageUrl = await uploadImage(imageFile);
         setUploadingImage(false);
       }
 
-      const res = await fetch("http://localhost:5000/api/payment/create-order", {
+      const res = await fetch(apiUrl("/api/payment/create-order"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -304,7 +302,7 @@ export function DateModal({
                       <span>Upload a Photo</span>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
                         onChange={handleImageChange}
                         className="hidden"
                       />

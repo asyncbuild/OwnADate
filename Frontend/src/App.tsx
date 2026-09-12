@@ -8,6 +8,7 @@ import { CalendarGrid } from "./components/calendar/CalendarGrid";
 import { DateModal } from "./components/modals/DateModal";
 import { DateCertificatePage } from "./components/date/DateCertificatePage";
 import { AboutRulesPage } from "./components/pages/AboutRulesPage";
+import { apiUrl } from "./config/api";
 
 export default function App() {
   const [ownedDates, setOwnedDates] = useState<Record<string, DateOwner>>(INITIAL_OWNED_DATES);
@@ -21,7 +22,7 @@ export default function App() {
   const publicDateKey = window.location.pathname.match(/^\/date\/(\d{4}-\d{2}-\d{2})$/)?.[1];
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/dates")
+    fetch(apiUrl("/api/dates"))
       .then((res) => {
         if (!res.ok) throw new Error("Unable to load dates");
         return res.json();

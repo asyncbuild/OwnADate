@@ -1,6 +1,7 @@
 import { ArrowLeft, Download, Share2, Check, Sparkles, Gift } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { DateOwner } from "../../types/calendar";
+import { apiUrl } from "../../config/api";
 import { formatDate } from "../../utils/calendar";
 
 interface DateCertificatePageProps {
@@ -23,7 +24,7 @@ export function DateCertificatePage({
   useEffect(() => {
     if (owner) return;
 
-    fetch(`http://localhost:5000/api/dates/${dateKey}`)
+    fetch(apiUrl(`/api/dates/${dateKey}`))
       .then((res) => {
         if (!res.ok) throw new Error("Not claimed");
         return res.json();

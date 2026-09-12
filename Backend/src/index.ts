@@ -1,5 +1,5 @@
 import express from "express";
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
@@ -7,10 +7,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { Server } from "socket.io";
 import http from "http";
+import multer from "multer";
 import { Category, DateStatus, PaymentStatus } from "@prisma/client";
 import { z } from "zod";
 import DodoPayments from "dodopayments";
 import { Webhook } from "standardwebhooks";
+import { fileTypeFromBuffer } from "file-type";
 
 dotenv.config();
 
@@ -35,6 +37,37 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
 });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+const allowedImageTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+]);
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    if (!allowedImageTypes.has(file.mimetype)) {
+      callback(new Error("Only JPEG, PNG, WebP, and GIF images are allowed"));
+      return;
+    }
+    callback(null, true);
+  },
+});
+const imageUploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  imageUpload.single("file")(req, res, (error: unknown) => {
+    if (error instanceof multer.MulterError) {
+      const message = error.code === "LIMIT_FILE_SIZE"
+        ? "Image size must be under 3MB"
+        : "Image upload failed";
+      return res.status(400).json({ error: message });
+    }
+    if (error instanceof Error) {
+      return res.status(400).json({ error: error.message });
+    }
+    next();
+  });
+};
 
 const dodo = new DodoPayments({
   bearerToken: process.env.DODO_PAYMENTS_API_KEY || process.env.DODO_BEARER_TOKEN!,
@@ -195,6 +228,46 @@ app.use(
         methods: ["GET", "POST"],
     })
 );
+
+app.post("/api/upload", imageUploadMiddleware, async (req: Request, res: Response) => {
+  const file = req.file;
+  const cloudName = process.env.cloudName;
+  const uploadPreset = process.env.uploadPreset;
+
+  if (!file) {
+    return res.status(400).json({ error: "Image file is required" });
+  }
+  const detectedType = await fileTypeFromBuffer(file.buffer);
+  if (!detectedType || detectedType.mime !== file.mimetype || !allowedImageTypes.has(detectedType.mime)) {
+    return res.status(400).json({ error: "The uploaded file is not a valid supported image" });
+  }
+  if (!cloudName || !uploadPreset) {
+    return res.status(500).json({ error: "Cloudinary configuration is missing" });
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("file", new Blob([new Uint8Array(file.buffer)], { type: file.mimetype }), file.originalname);
+    formData.append("upload_preset", uploadPreset);
+
+    const cloudinaryResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: "POST", body: formData },
+    );
+    const cloudinaryData = await cloudinaryResponse.json() as { secure_url?: string; error?: { message?: string } };
+
+    if (!cloudinaryResponse.ok || !cloudinaryData.secure_url) {
+      return res.status(502).json({
+        error: cloudinaryData.error?.message || "Image upload failed",
+      });
+    }
+
+    return res.json({ imageUrl: cloudinaryData.secure_url });
+  } catch (error) {
+    console.error("Cloudinary upload failed:", error);
+    return res.status(502).json({ error: "Image upload failed" });
+  }
+});
 
 // 1. GET /api/dates
 app.get("/api/dates", async (req: Request, res: Response) => {
