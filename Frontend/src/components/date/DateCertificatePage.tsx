@@ -1,11 +1,11 @@
 import { ArrowLeft, Download, Share2, Check, Sparkles, Gift } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { DateOwner } from "../../types/calendar";
 import { formatDate } from "../../utils/calendar";
 
 interface DateCertificatePageProps {
   dateKey: string;
-  owner: DateOwner;
+  owner?: DateOwner;
   onBack: () => void;
 }
 
@@ -15,12 +15,39 @@ export function DateCertificatePage({
   onBack,
 }: DateCertificatePageProps) {
   const [copied, setCopied] = useState(false);
+  const [certificateOwner, setCertificateOwner] = useState<DateOwner | null>(owner || null);
+  const [loading, setLoading] = useState(!owner);
+  const [notFound, setNotFound] = useState(false);
+  const isJustClaimed = new URLSearchParams(window.location.search).get("claimed") === "success";
+
+  useEffect(() => {
+    if (owner) return;
+
+    fetch(`http://localhost:5000/api/dates/${dateKey}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Not claimed");
+        return res.json();
+      })
+      .then((data: { owner: DateOwner }) => setCertificateOwner(data.owner))
+      .catch(() => setNotFound(true))
+      .finally(() => setLoading(false));
+  }, [dateKey, owner]);
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#f5f5f2] p-10 text-center">Verifying ownership...</div>;
+  }
+
+  if (notFound || !certificateOwner) {
+    return <div className="min-h-screen bg-[#f5f5f2] p-10 text-center">This date has not been claimed yet.</div>;
+  }
+
+  const certificate = certificateOwner;
 
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: `${owner.name}'s Date - ${formatDate(dateKey)}`,
-        text: `Check out ${owner.name}'s owned date: "${owner.title}" on Own a Date!`,
+        title: `${certificate.name}'s Date - ${formatDate(dateKey)}`,
+        text: `Check out ${certificate.name}'s owned date: "${certificate.title}" on Own a Date!`,
         url: window.location.href,
       });
     } else {
@@ -36,6 +63,12 @@ export function DateCertificatePage({
 
   return (
     <div className="min-h-screen bg-[#f5f5f2] px-4 py-8 text-[#151515] sm:px-6 lg:px-8">
+      {isJustClaimed && (
+        <div className="mx-auto mb-6 max-w-3xl rounded-xl bg-emerald-500/10 p-4 text-center text-sm font-semibold text-emerald-700 print:hidden">
+          Congratulations! Your claim has been permanently sealed.
+        </div>
+      )}
+
       {/* Navigation & Action Bar */}
       <div className="mx-auto flex max-w-3xl items-center justify-between print:hidden">
         <button
@@ -90,12 +123,23 @@ export function DateCertificatePage({
               This date is officially and permanently dedicated to
             </p>
             <div className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">
-              {owner.name}
+              {certificate.imageUrl ? (
+                <img
+                  src={certificate.imageUrl}
+                  alt={certificate.name}
+                  className="mx-auto mb-5 h-28 w-28 rounded-full border-4 border-black/5 object-cover shadow-sm"
+                />
+              ) : (
+                <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-black text-2xl font-bold text-white">
+                  {certificate.initial}
+                </div>
+              )}
+              {certificate.name}
             </div>
 
-            {owner.isGift && owner.senderName && (
+            {certificate.isGift && certificate.senderName && (
               <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-rose-500">
-                <Gift size={13} /> Dedicated with love by {owner.senderName}
+                <Gift size={13} /> Dedicated with love by {certificate.senderName}
               </div>
             )}
           </div>
@@ -103,21 +147,21 @@ export function DateCertificatePage({
           {/* Story / Engraving Plaque */}
           <div className="relative mx-auto mt-10 max-w-xl rounded-2xl border border-black/[0.08] bg-[#fafaf8] p-6 text-center shadow-inner">
             <div className="text-sm font-black text-black sm:text-base">
-              "{owner.title}"
+              "{certificate.title}"
             </div>
             <p className="mt-3 text-xs leading-relaxed text-black/70 sm:text-sm">
-              {owner.story}
+              {certificate.story}
             </p>
 
-            {owner.link && (
+            {certificate.link && (
               <div className="mt-4 pt-4 border-t border-black/[0.05]">
                 <a
-                  href={owner.link}
+                  href={certificate.link}
                   target="_blank"
                   rel="noreferrer"
                   className="text-[11px] font-bold text-black/50 underline hover:text-black"
                 >
-                  {owner.link}
+                  {certificate.link}
                 </a>
               </div>
             )}
@@ -130,7 +174,7 @@ export function DateCertificatePage({
                 Certificate ID
               </div>
               <div className="font-mono text-xs font-black tracking-wider text-black">
-                {owner.certificateId}
+                {certificate.certificateId}
               </div>
             </div>
 
@@ -145,7 +189,7 @@ export function DateCertificatePage({
                 Date Registered
               </div>
               <div className="text-xs font-bold text-black">
-                {owner.claimedAt}
+                {certificate.claimedAt}
               </div>
             </div>
           </div>

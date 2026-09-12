@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DateCell, DateOwner } from "./types/calendar";
 import { INITIAL_OWNED_DATES, INITIAL_ACTIVITIES } from "./constants/calendar";
 import { Header } from "./components/layout/Header";
@@ -8,56 +8,48 @@ import { CalendarGrid } from "./components/calendar/CalendarGrid";
 import { DateModal } from "./components/modals/DateModal";
 import { DateCertificatePage } from "./components/date/DateCertificatePage";
 import { AboutRulesPage } from "./components/pages/AboutRulesPage";
-import { Gift } from "lucide-react";
 
 export default function App() {
   const [ownedDates, setOwnedDates] = useState<Record<string, DateOwner>>(INITIAL_OWNED_DATES);
-  const [activities, setActivities] = useState(INITIAL_ACTIVITIES);
+  const [activities] = useState(INITIAL_ACTIVITIES);
   const [selectedDate, setSelectedDate] = useState<DateCell | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
   // Active page view: "calendar" | "certificate" | "about" | "rules"
   const [activePage, setActivePage] = useState<"calendar" | "certificate" | "about" | "rules">("calendar");
   const [viewingCertificateKey, setViewingCertificateKey] = useState<string | null>(null);
+  const publicDateKey = window.location.pathname.match(/^\/date\/(\d{4}-\d{2}-\d{2})$/)?.[1];
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/dates")
+      .then((res) => {
+        if (!res.ok) throw new Error("Unable to load dates");
+        return res.json();
+      })
+      .then((data: { ownedDates?: Record<string, DateOwner> }) => {
+        if (data.ownedDates) setOwnedDates(data.ownedDates);
+      })
+      .catch(() => {
+        // Keep the local calendar data available if the backend is offline.
+      });
+  }, []);
 
   const claimedCount = useMemo(() => {
     return Object.keys(ownedDates).length;
   }, [ownedDates]);
 
-  // Handle successful claim (simulated client-side for now)
-  const handleClaimDate = (newOwner: DateOwner) => {
-    if (!selectedDate) return;
-
-    const dateKey = selectedDate.dateKey;
-    setOwnedDates((prev) => ({
-      ...prev,
-      [dateKey]: newOwner,
-    }));
-
-    // Add to activity feed
-    setActivities((prev) => [
-      {
-        id: Date.now(),
-        name: newOwner.senderName || newOwner.name,
-        initial: newOwner.initial,
-        action: newOwner.isGift ? "gifted" : "claimed",
-        date: new Date(`${dateKey}T00:00:00`).toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-        }),
-        title: newOwner.title,
-        price: newOwner.price,
-        time: "Just now",
-        icon: Gift,
-      },
-      ...prev.slice(0, 8),
-    ]);
-
-    setSelectedDate(null);
-    // Direct buyer straight to their newly created certificate page!
-    setViewingCertificateKey(dateKey);
-    setActivePage("certificate");
-  };
+  // Public certificate URLs are loaded directly from the backend.
+  if (publicDateKey) {
+    return (
+      <DateCertificatePage
+        dateKey={publicDateKey}
+        onBack={() => {
+          window.history.pushState({}, "", "/");
+          window.location.reload();
+        }}
+      />
+    );
+  }
 
   // 1. IF VIEWING DEDICATED CERTIFICATE PAGE
   if (activePage === "certificate" && viewingCertificateKey && ownedDates[viewingCertificateKey]) {
@@ -112,7 +104,6 @@ export default function App() {
             setViewingCertificateKey(key);
             setActivePage("certificate");
           }}
-          onClaimDate={handleClaimDate}
         />
       )}
     </div>

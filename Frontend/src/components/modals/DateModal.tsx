@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   ArrowRight, 
   ExternalLink, 
@@ -6,9 +6,11 @@ import {
   Gift, 
   Lock, 
   Sparkles, 
-  HeartHandshake 
+  HeartHandshake,
+  Upload,
+  Loader2,
 } from "lucide-react";
-import type { DateCell, DateOwner, Category } from "../../types/calendar";
+import type { DateCell, Category } from "../../types/calendar";
 import { formatDate } from "../../utils/calendar";
 import { STANDARD_PRICE, PREMIUM_PRICE } from "../../constants/calendar";
 
@@ -16,14 +18,12 @@ interface DateModalProps {
   date: DateCell;
   onClose: () => void;
   onViewCertificate: (dateKey: string) => void;
-  onClaimDate: (newOwner: DateOwner) => void;
 }
 
 export function DateModal({
   date,
   onClose,
   onViewCertificate,
-  onClaimDate,
 }: DateModalProps) {
   const owner = date.owner;
   const price = date.isPremium ? PREMIUM_PRICE : STANDARD_PRICE;
@@ -37,33 +37,90 @@ export function DateModal({
   const [story, setStory] = useState("");
   const [category, setCategory] = useState<Category>("Memory");
   const [link, setLink] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [currency, setCurrency] = useState<"INR" | "USD">("INR");
+  const [submitting, setSubmitting] = useState(false);
+  const displayPrice = currency === "INR" ? price : date.isPremium ? 14.99 : 8.99;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetch("http://localhost:5000/api/geo")
+      .then((res) => res.json())
+      .then((data) => setCurrency(data.currency || "INR"))
+      .catch(() => setCurrency("INR"));
+  }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      alert("Image size must be under 3MB");
+      e.target.value = "";
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const uploadToCloudinary = async (file: File): Promise<string | null> => {
+    const cloudName = "xajjsy9j";
+    const uploadPreset = "l3wtku4u";
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", uploadPreset);
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      { method: "POST", body: formData }
+    );
+
+    if (!res.ok) throw new Error("Image upload failed");
+    const data = await res.json();
+    return data.secure_url;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitting(true);
 
-    // Mock client-side creation (Backend Razorpay integration will replace this)
-    const newOwner: DateOwner = {
-      name: name.trim(),
-      initial: name.trim().charAt(0).toUpperCase(),
-      senderName: isGift ? senderName.trim() : undefined,
-      isGift,
-      buyerEmail: buyerEmail.trim(),
-      title: title.trim(),
-      story: story.trim(),
-      category,
-      link: link.trim() || undefined,
-      price,
-      certificateId: `CERT-${date.dateKey.replace(/-/g, "").slice(4)}-${Math.floor(
-        1000 + Math.random() * 9000
-      )}`,
-      claimedAt: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-    };
+    try {
+      let uploadedImageUrl = "";
+      if (imageFile) {
+        setUploadingImage(true);
+        uploadedImageUrl = (await uploadToCloudinary(imageFile)) || "";
+        setUploadingImage(false);
+      }
 
-    onClaimDate(newOwner);
+      const res = await fetch("http://localhost:5000/api/payment/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dateKey: date.dateKey,
+          isGift,
+          name: name.trim(),
+          imageUrl: uploadedImageUrl || undefined,
+          currency,
+          senderName: isGift ? senderName.trim() : undefined,
+          buyerEmail: buyerEmail.trim(),
+          title: title.trim(),
+          story: story.trim(),
+          category,
+          link: link.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Order creation failed");
+
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Order creation failed");
+      setSubmitting(false);
+      setUploadingImage(false);
+    }
   };
 
   return (
@@ -217,6 +274,44 @@ export function DateModal({
                 />
               </div>
 
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
+                    Dedication Photo (Optional)
+                  </label>
+
+                  {imagePreview ? (
+                    <div className="relative mt-1.5 h-24 w-24 overflow-hidden rounded-2xl border border-black/10">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setImageFile(null);
+                          setImagePreview(null);
+                        }}
+                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white"
+                        aria-label="Remove dedication photo"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="mt-1.5 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-black/20 bg-[#fafaf8] py-3 text-xs font-semibold text-black/60 transition hover:border-black/50 hover:bg-white">
+                      <Upload size={14} />
+                      <span>Upload a Photo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
                   Your Email (For Certificate & Receipt) *
@@ -304,7 +399,9 @@ export function DateModal({
                 <div className="text-[9px] font-bold uppercase text-black/40">
                   One-time Claim Price
                 </div>
-                <div className="mt-0.5 text-2xl font-black">₹{price}</div>
+                <div className="mt-0.5 text-2xl font-black">
+                  {currency === "INR" ? "₹" : "$"}{displayPrice}
+                </div>
               </div>
               <div className="text-right text-[10px] font-medium text-black/50">
                 Permanent ownership
@@ -316,13 +413,25 @@ export function DateModal({
             {/* Submit Button */}
             <button
               type="submit"
-              className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-black py-4 text-sm font-bold text-white transition hover:bg-black/85"
+              disabled={submitting}
+              className="group flex w-full items-center justify-center gap-2 rounded-2xl bg-black py-4 text-sm font-bold text-white transition hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span>{isGift ? `Gift Date for ₹${price}` : `Claim Date for ₹${price}`}</span>
-              <ArrowRight
-                size={16}
-                className="transition-transform group-hover:translate-x-1"
-              />
+              {submitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>{uploadingImage ? "Uploading Photo..." : "Preparing Checkout..."}</span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    {isGift ? "Gift Date" : "Claim Date"} for {currency === "INR" ? "₹" : "$"}{displayPrice}
+                  </span>
+                  <ArrowRight
+                    size={16}
+                    className="transition-transform group-hover:translate-x-1"
+                  />
+                </>
+              )}
             </button>
           </form>
         )}

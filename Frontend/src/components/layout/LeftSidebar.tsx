@@ -13,7 +13,7 @@ export function LeftSidebar({ claimedCount = 3 }: LeftSidebarProps) {
         <div>
           <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#f2f2ef] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-black/55">
             <Sparkles size={12} />
-            366 Unique Dates
+            365 Unique Dates
           </div>
 
           <h1 className="text-[34px] font-black leading-[0.98] tracking-[-0.045em]">
@@ -70,7 +70,7 @@ export function LeftSidebar({ claimedCount = 3 }: LeftSidebarProps) {
           <div className="grid grid-cols-2 gap-2">
             <StatCard
               icon={<CalendarDays size={14} />}
-              value="366"
+              value="365"
               label="Total Dates"
             />
 

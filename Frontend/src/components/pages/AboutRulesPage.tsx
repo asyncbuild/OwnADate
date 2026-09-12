@@ -69,7 +69,7 @@ export function AboutRulesPage({
             </h1>
 
             <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-black/40">
-              Permanent Calendar Registry • 366 Unique Days
+                  Permanent Calendar Registry • 365 Unique Days in 2026
             </p>
           </div>
 
@@ -82,7 +82,7 @@ export function AboutRulesPage({
                   Every day belongs to someone.
                 </h2>
                 <p className="mt-4 text-sm leading-relaxed text-black/70 sm:text-base">
-                  There are only 366 days in the calendar. A single date can mark the day two people crossed paths, the start of an ambitious dream, a birthday that changed everything, or a quiet memory you never want to forget.
+                  There are 365 days in the 2026 calendar. A single date can mark the day two people crossed paths, the start of an ambitious dream, a birthday that changed everything, or a quiet memory you never want to forget.
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-black/70 sm:text-base">
                   <strong className="text-black">Own a Date</strong> is a permanent digital registry. It lets you claim a specific day on the calendar, engrave your story into it, or gift it to someone special.
@@ -168,7 +168,7 @@ export function AboutRulesPage({
                 </div>
                 <ul className="space-y-2 pl-6 text-xs sm:text-sm leading-relaxed text-black/70 list-disc">
                   <li>
-                    <strong className="text-black">One Owner Per Date:</strong> There are only 366 unique dates available (including February 29).
+                    <strong className="text-black">One Owner Per Date:</strong> There are 365 unique dates available in 2026.
                   </li>
                   <li>
                     <strong className="text-black">No Takeovers:</strong> Once a payment is verified, the date is permanently reserved. It cannot be bought out, transferred, or replaced by another user.
@@ -238,7 +238,7 @@ export function AboutRulesPage({
             <div>
               <div className="text-base font-black">Ready to claim your date?</div>
               <div className="text-xs text-white/60">
-                Explore available dates on the 366-day calendar registry.
+                Explore available dates on the 365-day 2026 calendar registry.
               </div>
             </div>
             <button

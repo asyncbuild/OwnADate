@@ -25,6 +25,7 @@ export interface CategoryTheme {
 export type DateOwner = {
   name: string;             // Recipient / Owner name
   initial: string;
+  imageUrl?: string;
   senderName?: string;      // If gifted, e.g. "From Alex"
   isGift?: boolean;
   buyerEmail?: string;

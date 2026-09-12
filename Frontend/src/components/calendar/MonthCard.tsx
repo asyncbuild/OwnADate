@@ -74,10 +74,17 @@ export function MonthCard({
                   }
                 `}
               >
-                {/* When claimed: Display owner's 1st letter instead of date number */}
-                <span className="leading-none text-[10px] font-black">
-                  {isOwned ? cell.owner?.initial : cell.day}
-                </span>
+                {isOwned && cell.owner?.imageUrl ? (
+                  <img
+                    src={cell.owner.imageUrl}
+                    alt={cell.owner.name}
+                    className="h-full w-full rounded-lg object-cover"
+                  />
+                ) : (
+                  <span className="leading-none text-[10px] font-black">
+                    {isOwned ? cell.owner?.initial : cell.day}
+                  </span>
+                )}
 
                 {/* Subtle Gift Icon Badge if gifted */}
                 {isOwned && cell.owner?.isGift && (

@@ -1,18 +1,17 @@
 import type { DateOwner, Activity, CategoryTheme } from "../types/calendar";
 import { Flame, Trophy, Gift } from "lucide-react";
 
-export const CALENDAR_YEAR = 2020;
+export const CALENDAR_YEAR = 2026;
 
 export const STANDARD_PRICE = 499;  // ₹499 for standard dates
 export const PREMIUM_PRICE = 999;   // ₹999 for Valentine's, NYE, etc.
 
 export const PREMIUM_DATE_KEYS = new Set([
-  "2020-01-01", // New Year's Day
-  "2020-02-14", // Valentine's Day
-  "2020-02-29", // Leap Day
-  "2020-10-31", // Halloween
-  "2020-12-25", // Christmas
-  "2020-12-31", // New Year's Eve
+  "2026-01-01", // New Year's Day
+  "2026-02-14", // Valentine's Day
+  "2026-10-31", // Halloween
+  "2026-12-25", // Christmas
+  "2026-12-31", // New Year's Eve
 ]);
 
 export const MONTHS = [
@@ -131,7 +130,7 @@ export const DEFAULT_CATEGORY_THEME: CategoryTheme = {
 };
 
 export const INITIAL_OWNED_DATES: Record<string, DateOwner> = {
-  "2020-02-14": {
+  "2026-02-14": {
     name: "Priya",
     initial: "P",
     senderName: "Rahul",
@@ -144,18 +143,18 @@ export const INITIAL_OWNED_DATES: Record<string, DateOwner> = {
     certificateId: "CERT-FEB14-001",
     claimedAt: "Feb 14, 2026",
   },
-  "2020-02-29": {
+  "2026-02-28": {
     name: "Siddharth",
     initial: "S",
-    title: "A day that only comes every 4 years ⏳",
-    story: "Claimed the rarest date on the calendar as a reminder to make rare moments count.",
+    title: "A day worth remembering ⏳",
+    story: "Claimed this special date as a reminder to make rare moments count.",
     price: 999,
     category: "Special",
     link: "https://example.com",
-    certificateId: "CERT-FEB29-002",
-    claimedAt: "Feb 29, 2026",
+    certificateId: "CERT-FEB28-002",
+    claimedAt: "Feb 28, 2026",
   },
-  "2020-05-18": {
+  "2026-05-18": {
     name: "Sarah",
     initial: "S",
     senderName: "Mom & Dad",

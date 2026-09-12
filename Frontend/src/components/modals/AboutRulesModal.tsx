@@ -86,7 +86,7 @@ export function AboutRulesModal({
                 Every day belongs to someone.
               </h3>
               <p className="mt-3 text-xs leading-relaxed text-black/70 sm:text-sm">
-                There are only 366 days in the calendar. A single date can mark the day two people crossed paths, the start of an ambitious dream, a birthday that changed everything, or a quiet memory you never want to forget.
+                There are 365 days in the 2026 calendar. A single date can mark the day two people crossed paths, the start of an ambitious dream, a birthday that changed everything, or a quiet memory you never want to forget.
               </p>
               <p className="mt-3 text-xs leading-relaxed text-black/70 sm:text-sm">
                 <strong className="text-black">Own a Date</strong> is a permanent digital registry. It lets you claim a specific day on the calendar, engrave your story into it, or gift it to someone special.
@@ -172,7 +172,7 @@ export function AboutRulesModal({
               </div>
               <ul className="space-y-1.5 pl-6 text-xs leading-relaxed text-black/70 list-disc">
                 <li>
-                  <strong className="text-black">One Owner Per Date:</strong> There are only 366 unique dates available (including February 29).
+                  <strong className="text-black">One Owner Per Date:</strong> There are 365 unique dates available in 2026.
                 </li>
                 <li>
                   <strong className="text-black">No Takeovers:</strong> Once a payment is verified, the date is permanently reserved. It cannot be bought out, transferred, or replaced by another user.

@@ -29,7 +29,7 @@ export function CalendarGrid({
           </div>
 
           <h2 className="mt-1 text-3xl font-black tracking-[-0.05em]">
-            366 Days
+            365 Days
           </h2>
         </div>
       </div>

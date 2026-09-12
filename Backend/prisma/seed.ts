@@ -12,16 +12,15 @@ const pool = new Pool({ connectionString });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 const PREMIUM_DATES = new Set([
-  "2020-01-01", 
-  "2020-02-14", 
-  "2020-02-29", 
-  "2020-10-31", 
-  "2020-12-25", 
-  "2020-12-31", 
+    "2026-01-01", 
+    "2026-02-14", 
+    "2026-10-31", 
+    "2026-12-25", 
+    "2026-12-31", 
 ]) 
 
 async function main(){
-    const year = 2020;
+        const year = 2026;
     const entries = [];
 
     for(let month = 0 ; month < 12; month++){
@@ -45,7 +44,7 @@ async function main(){
         data: entries,
         skipDuplicates: true,
     });
-    console.log(`All 366 dates successfully seeded into db!`);
+    console.log(`All ${entries.length} dates successfully seeded into db!`);
 
 }
 

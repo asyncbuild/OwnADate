@@ -7,10 +7,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { Server } from "socket.io";
 import http from "http";
-import crypto from "crypto";
-import Razorpay from "razorpay";
 import { Category, DateStatus, PaymentStatus } from "@prisma/client";
 import { z } from "zod";
+import DodoPayments from "dodopayments";
+import { Webhook } from "standardwebhooks";
 
 dotenv.config();
 
@@ -22,28 +22,35 @@ const io = new Server(server, {
         methods: ["GET", "POST"],
     }
 })
-
 const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
     throw new Error("DATABASE_URL environment variable is missing.");
 }
 
-const pool = new Pool({ connectionString });
+const pool = new Pool({
+  connectionString,
+  max: 5,
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+});
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+const dodo = new DodoPayments({
+  bearerToken: process.env.DODO_PAYMENTS_API_KEY || process.env.DODO_BEARER_TOKEN!,
+  environment: (process.env.DODO_PAYMENTS_ENVIRONMENT || process.env.DODO_ENVIRONMENT) === "live_mode" ? "live_mode" : "test_mode",
 })
-
-const STANDARD_PRICE_PAISA = 49900
-const PREMIUM_PRICE_PAISA = 99900
+const PRICES = {
+    INR: { STANDARD: 49900, PREMIUM: 99900 },
+    USD: { STANDARD: 899, PREMIUM: 1499 },
+}
 
 const OrderInputSchema = z.object({
     dateKey: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     isGift: z.boolean(),
     name: z.string().min(1).max(100),
+    imageUrl: z.string().url().or(z.literal("")).optional(),
+    currency: z.enum(["INR", "USD"]).default("INR"),
     senderName: z.string().max(100).optional(),
     buyerEmail: z.string().email(),
     title: z.string().min(1).max(200),
@@ -51,6 +58,136 @@ const OrderInputSchema = z.object({
     category: z.nativeEnum(Category),
     link:z.string().url().or(z.literal("")).optional(),
 })
+
+app.post(
+  "/api/payment/webhook",
+  express.raw({ type: "application/json" }),
+  async (req: Request, res: Response) => {
+    try {
+    const webhookSecret = process.env.DODO_PAYMENTS_WEBHOOK_KEY;
+
+    if (!webhookSecret) {
+      return res.status(500).send("Webhook secret not configured");
+    }
+
+    const headers = {
+      "webhook-id": req.headers["webhook-id"] as string,
+      "webhook-signature": req.headers["webhook-signature"] as string,
+      "webhook-timestamp": req.headers["webhook-timestamp"] as string,
+    };
+
+    if (!headers["webhook-id"] || !headers["webhook-signature"] || !headers["webhook-timestamp"]) {
+      return res.status(400).send("Missing webhook headers");
+    }
+
+    const rawBody = req.body.toString();
+
+    try {
+      const wh = new Webhook(webhookSecret);
+      wh.verify(rawBody, headers);
+    } catch {
+      return res.status(400).send("Invalid signature");
+    }
+
+    const payload = JSON.parse(rawBody);
+
+    if (payload.type === "payment.succeeded") {
+      const paymentId = payload.data.payment_id;
+
+      await prisma.$transaction(async (tx) => {
+        const order = await tx.order.findUnique({ where: { id: paymentId } });
+        if (!order || order.status === PaymentStatus.PAID) return;
+
+        // Lock the date row
+        await tx.dateEntry.update({
+          where: { dateKey: order.dateKey },
+          data: { status: DateStatus.LOCKED },
+        });
+
+        // Mark order as PAID
+        await tx.order.update({
+          where: { id: paymentId },
+          data: { status: PaymentStatus.PAID },
+        });
+
+        const shortCode = order.dateKey.replace(/-/g, "").slice(4);
+        const certificateId = `CERT-${shortCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        const claim = await tx.claim.create({
+          data: {
+            certificateId,
+            dateKey: order.dateKey,
+            ownerName: order.name,
+            initial: order.name.trim().charAt(0).toUpperCase(),
+            imageUrl: order.imageUrl || null,
+            isGift: order.isGift,
+            senderName: order.senderName,
+            buyerEmail: order.buyerEmail,
+            title: order.title,
+            story: order.story,
+            category: order.category,
+            link: order.link,
+            pricePaid: order.amount,
+            currency: order.currency,
+            paymentId,
+          },
+        });
+
+        const dateObj = new Date(`${order.dateKey}T00:00:00`);
+        const dateLabel = dateObj.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+        const actorName = order.isGift && order.senderName ? order.senderName : order.name;
+
+        const activity = await tx.activity.create({
+          data: {
+            claimId: claim.id,
+            action: order.isGift ? "gifted" : "claimed",
+            actorName,
+            initial: actorName.trim().charAt(0).toUpperCase(),
+            imageUrl: order.imageUrl || null,
+            dateLabel,
+            title: order.title,
+            price: order.amount / 100,
+            currency: order.currency,
+          },
+        });
+
+        io.emit("date_claimed", {
+          claim: {
+            name: claim.ownerName,
+            initial: claim.initial,
+            imageUrl: claim.imageUrl || undefined,
+            senderName: claim.senderName || undefined,
+            isGift: claim.isGift,
+            title: claim.title,
+            story: claim.story,
+            category: claim.category,
+            link: claim.link || undefined,
+            price: claim.pricePaid / 100,
+            currency: claim.currency,
+            certificateId: claim.certificateId,
+            claimedAt: claim.claimedAt.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            }),
+          },
+          activity,
+        });
+      }, { maxWait: 15000, timeout: 30000 });
+    }
+
+      return res.json({ received: true });
+    } catch (error) {
+      console.error("Webhook processing failed:", error);
+      return res.status(500).json({ error: "Webhook processing failed" });
+    }
+  }
+);
+
+app.use(express.json());
 
 app.use(
     cors({
@@ -68,6 +205,7 @@ app.get("/api/dates", async (req: Request, res: Response) => {
                     select:{
                         ownerName: true,
                         initial: true,
+                        imageUrl: true,
                         senderName: true,
                         isGift: true,
                         title: true,
@@ -95,6 +233,7 @@ app.get("/api/dates", async (req: Request, res: Response) => {
                 ownedDates[d.dateKey] = {
                     name: d.claim.ownerName,
                     initial: d.claim.initial,
+                    imageUrl: d.claim.imageUrl || undefined,
                     senderName: d.claim.senderName || undefined,
                     isGift: d.claim.isGift,
                     title: d.claim.title,
@@ -140,6 +279,7 @@ app.get("/api/dates/:dateKey", async (req: Request<{ dateKey: string }>, res: Re
             owner:{
                 name : claim.ownerName,
                 initial : claim.initial,
+                imageUrl : claim.imageUrl || undefined,
                 senderName : claim.senderName || undefined,
                 isGift : claim.isGift,
                 title : claim.title,
@@ -163,16 +303,16 @@ app.get("/api/dates/:dateKey", async (req: Request<{ dateKey: string }>, res: Re
 
 // 3. GET /api/activities
 // Returns recent 10 events for the live activity feed
-app.get("/api/activites",async(req:Request ,res:Response)=>{
+app.get("/api/activities",async(req:Request ,res:Response)=>{
     try{
-    const activites = await prisma.activity.findMany({
+    const activities = await prisma.activity.findMany({
         take:10,
         orderBy:{ createdAt : "desc" }
     })
-    res.json({activites})
+    res.json({activities})
     }catch(error){
-        console.error("Error fetching activites ", error)
-        res.status(500).json({error : "Failed to fetch activites"})
+        console.error("Error fetching activities ", error)
+        res.status(500).json({error : "Failed to fetch activities"})
     }
 })
 
@@ -193,216 +333,91 @@ io.on("connection",(socket)=>{
 // -------------------------------------------------------------
 
 app.post("/api/payment/create-order", async (req: Request, res: Response) => {
-    const parseResult = OrderInputSchema.safeParse(req.body);
-    if(!parseResult.success) {
-        return res.status(400).json({ error: parseResult.error.issues[0]?.message ?? "Invalid request data" });
+  const parseResult = OrderInputSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: parseResult.error.issues[0]?.message });
+  }
+  const data = parseResult.data;
+
+  try {
+    const dateEntry = await prisma.dateEntry.findUnique({
+      where: { dateKey: data.dateKey },
+    });
+
+    if (!dateEntry || dateEntry.status === DateStatus.LOCKED) {
+      return res.status(409).json({ error: "Date unavailable" });
     }
-    const data = parseResult.data;
 
-    try{
-        const dateEntry = await prisma.dateEntry.findUnique({
-            where: { dateKey: data.dateKey },
-        })
-        if(!dateEntry) {
-            return res.status(404).json({ error: "Date does not found" });
+    const currency = data.currency; // "INR" or "USD"
+    const amount = dateEntry.isPremium
+      ? PRICES[currency].PREMIUM
+      : PRICES[currency].STANDARD;
+        const productId = dateEntry.isPremium
+          ? process.env.DODO_PREMIUM_PRODUCT_ID
+          : process.env.DODO_STANDARD_PRODUCT_ID;
+
+        if (!productId) {
+          return res.status(500).json({
+            error: `Missing ${dateEntry.isPremium ? "DODO_PREMIUM_PRODUCT_ID" : "DODO_STANDARD_PRODUCT_ID"} in Backend/.env`,
+          });
         }
-        if(dateEntry.status === DateStatus.LOCKED){
-            return res.status(409).json({ error: "This date is already permanently claimed." });
-        }
 
-        const price = dateEntry.isPremium ? PREMIUM_PRICE_PAISA : STANDARD_PRICE_PAISA;
+    // Create Dodo Checkout Session
+    const payment = await dodo.payments.create({
+      billing: {
+        city: "City",
+        country: currency === "INR" ? "IN" : "US",
+        state: "State",
+        street: "Street",
+        zipcode: "000000",
+      },
+      customer: { email: data.buyerEmail, name: data.name },
+      payment_link: true,
+      product_cart: [
+        {
+                    product_id: productId,
+          quantity: 1,
+          amount,
+        },
+      ],
+      return_url: `${process.env.FRONTEND_URL}/date/${data.dateKey}?claimed=success`,
+    });
 
-        const rzpOrder = await razorpay.orders.create({
-            amount: price,
-            currency: "INR",
-            receipt: `rcpt_${Date.now().toString().slice(-8)}`,
-            notes: {dateKey: data.dateKey},
-        })
-        await prisma.order.create({
-            data:{
-                id: rzpOrder.id,
-                dateKey: data.dateKey,
-                amount: price,
-                currency: "INR",
-                name: data.name,
-                isGift: data.isGift,
-                senderName: data.senderName || null,
-                buyerEmail: data.buyerEmail,
-                title: data.title,
-                story: data.story,
-                category: data.category,
-                link: data.link || null,
-            }
-        })
-        res.json({
-            orderId: rzpOrder.id,
-            amount: rzpOrder.amount,
-            currency:"INR",
-            keyId: process.env.RAZORPAY_KEY_ID,
-        })
-    }catch(err : any){
-        console.error("Order creation error:", err);
-        res.status(500).json({ error: err.message || "Failed to create order" });
-    }
-})
+    // Save pending order using Dodo's payment_id
+    await prisma.order.create({
+      data: {
+        id: payment.payment_id,
+        dateKey: data.dateKey,
+        amount,
+        currency,
+        name: data.name,
+        imageUrl: data.imageUrl || null,
+        isGift: data.isGift,
+        senderName: data.senderName || null,
+        buyerEmail: data.buyerEmail,
+        title: data.title,
+        story: data.story,
+        category: data.category,
+        link: data.link || null,
+      },
+    });
+
+    res.json({ checkoutUrl: payment.payment_link });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to create payment" });
+  }
+});
 
 // -------------------------------------------------------------
 // 5. POST /api/payment/verify-payment
 // -------------------------------------------------------------
 
-app.post("/api/payment/verify-payment", async (req: Request, res: Response) => {
-    const {razorpay_order_id, razorpay_payment_id, razorpay_signature} = req.body;
-    
-    if(!razorpay_order_id || !razorpay_payment_id || !razorpay_signature){
-        return res.status(400).json({ success: false, error: "Missing verification payload" });
-    }
-
-    //1. Verify Razorpay Signature
-    const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
-    .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-    .digest("hex");
-
-    if(expectedSignature !== razorpay_signature){
-        return res.status(400).json({ success: false, error: "Invalid signature" });
-    }
-
-    try{
-        //2. Atomic Database Transaction with Row Lock
-        const result = await prisma.$transaction(async (tx) => {
-            const order = await tx.order.findUnique({
-                where: { id: razorpay_order_id },
-            })
-            if(!order){
-                throw new Error("Order not found");
-            }
-            if(order.status === PaymentStatus.PAID){
-                return{duplicate:true, dateKey: order.dateKey};
-            }
-
-            // Lock row to prevent race conditions.
-            const lockedDates = await tx.$queryRaw<Array<{ dateKey: string ; status: DateStatus }>>`
-                SELECT "dateKey", "status" FROM "DateEntry"
-                WHERE "dateKey" = ${order.dateKey}
-                FOR UPDATE
-            `;
-
-            const dateEntry = lockedDates[0];
-            if(!dateEntry){
-                throw new Error("INVALID_DATE");
-            }
-
-            //Handle rare outbid race condition
-
-            if(dateEntry.status === DateStatus.LOCKED){
-                await tx.order.update({
-                    where: { id: razorpay_order_id },
-                    data: { status: PaymentStatus.REFUNDED, paymentId: razorpay_payment_id },
-                });
-                
-                await razorpay.payments.refund(razorpay_payment_id, {
-                    amount: order.amount,
-                    notes: { reason: "Date already claimed by another user" },
-                });
-                throw new Error("DATE_ALREADY_CLAIMED");
-            }
-
-            //Lock the date
-            await tx.dateEntry.update({
-                where: { dateKey: order.dateKey },
-                data: { status: DateStatus.LOCKED },
-            });
-
-            //update order status
-            await tx.order.update({
-                where: { id: razorpay_order_id },
-                data: { status: PaymentStatus.PAID, paymentId: razorpay_payment_id, signature: razorpay_signature },
-            });
-
-            //create certificate ID
-            const shortCode = order.dateKey.replace(/-/g,"").slice(4);
-            const randomSalt = Math.floor(1000 + Math.random()* 9000);
-            const certificateId = `CERT-${shortCode}-${randomSalt}`;
-            const initial = order.name.trim().charAt(0).toUpperCase();
-
-            //create permanent claim
-            const claim = await tx.claim.create({
-                data:{
-                    certificateId,
-                    dateKey: order.dateKey,
-                    ownerName: order.name,
-                    initial,
-                    isGift: order.isGift,
-                    senderName: order.isGift ? order.senderName : null,
-                    buyerEmail: order.buyerEmail,
-                    title: order.title,
-                    story: order.story,
-                    category: order.category,
-                    link: order.link || null,
-                    pricePaid: order.amount,
-                    paymentId: razorpay_payment_id,
-                }
-            })
-
-            //Insert Activity Feed item
-            const dateObj = new Date(`${order.dateKey}T00:00:00`);
-            const dateLabel = dateObj.toLocaleDateString("en-US",{
-                month: "short",
-                day: "numeric",
-            })
-            const actorName = order.isGift && order.senderName ? order.senderName : order.name;
-            const activity = await tx.activity.create({
-                data:{
-                    claimId: claim.id,
-                    action:order.isGift ? "gifted" : "claimed",
-                    actorName,
-                    initial: actorName.trim().charAt(0).toUpperCase(),
-                    dateLabel,
-                    title: order.title,
-                    price: order.amount/100,
-                } 
-            })
-            return {claim,activity}
-        })
-
-        if("duplicate" in result && result.duplicate){
-            return res.status(409).json({ success: false, error: "This date has already been claimed by you.", dateKey: result.dateKey });
-        }
-        
-        // Broadcast real-time activity feed update
-        io.emit("date_claimed", {
-            claim:{
-                name: result.claim!.ownerName,
-                initial: result.claim!.initial,
-                senderName: result.claim!.senderName || undefined,
-                isGift: result.claim!.isGift,
-                title: result.claim!.title,
-                story: result.claim!.story,
-                category: result.claim!.category,
-                link: result.claim!.link || undefined,
-                price: result.claim!.pricePaid/100,
-                certificateId: result.claim!.certificateId,
-                claimedAt: result.claim!.claimedAt.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                }),
-            },
-            activity:result.activity,
-        })
-        res.json({success:true, certificateId: result.claim!.certificateId})
-    }catch(err:any){
-        if (err.message === "DATE_ALREADY_LOCKED") {
-            return res.status(409).json({
-                success: false,
-                error: "This date was just claimed a moment before. Your payment has been automatically refunded.",
-            });
-            }
-        console.error("Verification error:", err);
-        res.status(500).json({ success: false, error: err.message });
-    }
-
-})
+app.get("/api/geo", (req: Request, res: Response) => {
+  const country = (req.headers["cf-ipcountry"] as string) || "IN";
+  res.json({
+    currency: country.toUpperCase() === "IN" ? "INR" : "USD",
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
