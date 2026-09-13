@@ -28,7 +28,7 @@ interface DateModalProps {
   date: DateCell;
   currency?: "INR" | "USD";
   onClose: () => void;
-  onViewCertificate: (dateKey: string) => void;
+  onViewCertificate?: (dateKey: string) => void;
 }
 
 const CATEGORY_OPTIONS: {
@@ -324,12 +324,18 @@ export function DateModal({
                 <Lock size={14} className="text-black/40" />
                 <span>This date is permanently owned</span>
               </div>
-              <button
-                onClick={() => onViewCertificate(date.dateKey)}
-                className="flex items-center gap-1 font-bold text-black hover:underline"
+              <a
+                href={`/date/${date.dateKey}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  onViewCertificate?.(date.dateKey);
+                  onClose();
+                }}
+                className="flex items-center gap-1 font-bold text-black hover:underline cursor-pointer"
               >
                 View Certificate <ArrowRight size={12} />
-              </button>
+              </a>
             </div>
           </div>
         ) : (
