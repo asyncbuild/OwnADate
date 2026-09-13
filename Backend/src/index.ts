@@ -76,10 +76,16 @@ const dodo = new DodoPayments({
   environment: (process.env.DODO_PAYMENTS_ENVIRONMENT || process.env.DODO_ENVIRONMENT) === "live_mode" ? "live_mode" : "test_mode",
 })
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: Number(process.env.SMTP_PORT) || 587,
+  secure: false, 
+  requireTLS: true,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
+  },
+  tls: {
+    rejectUnauthorized: false,
   },
 });
 const PRICES = {
@@ -603,8 +609,14 @@ app.get("/api/geo", async (req: Request, res: Response) => {
 
       res.json({ success: true, message: "OTP sent successfully" });
     } catch (err: any) {
-      console.error("Nodemailer error:", err);
-      res.status(500).json({ error: "Failed to send verification email" });
+      console.error("Nodemailer OTP sending error:", err?.message || err);
+      const isMissingCredentials = !process.env.SMTP_USER || !process.env.SMTP_PASS;
+      const detail = err?.message ? `: ${err.message}` : "";
+      res.status(500).json({
+        error: isMissingCredentials
+          ? "SMTP credentials missing on server. Please add SMTP_USER and SMTP_PASS to environment variables."
+          : `Failed to send verification email${detail}`,
+      });
     }
   });
 

@@ -77,7 +77,7 @@ a {
 }
 
 .animate-marquee-vertical {
-  animation: marqueeVertical 30s linear infinite;
+  animation: marqueeVertical 140s linear infinite;
 }
 
 .animate-marquee-vertical:hover {
@@ -95,7 +95,7 @@ a {
 }
 
 .animate-marquee-horizontal {
-  animation: marqueeHorizontal 28s linear infinite;
+  animation: marqueeHorizontal 120s linear infinite;
 }
 
 .animate-marquee-horizontal:hover {
