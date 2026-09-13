@@ -14,9 +14,11 @@ export function Header({ onOpenAbout, onOpenRules }: HeaderProps) {
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
         >
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-black text-white">
-            <CalendarDays size={18} strokeWidth={2.2} />
-          </div>
+          <img
+            src="/OwnADate.png"
+            alt="Own a Date"
+            className="h-9 w-9 rounded-xl object-cover shadow-sm"
+          />
 
           <div>
             <div className="text-[15px] font-bold tracking-tight">
@@ -24,7 +26,7 @@ export function Header({ onOpenAbout, onOpenRules }: HeaderProps) {
             </div>
 
             <div className="hidden text-[10px] font-medium uppercase tracking-[0.18em] text-black/40 sm:block">
-              Leave your mark
+              Every day has a story
             </div>
           </div>
         </div>

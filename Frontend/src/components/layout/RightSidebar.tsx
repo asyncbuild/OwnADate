@@ -9,7 +9,7 @@ interface RightSidebarProps {
 
 export function RightSidebar({ activities = INITIAL_ACTIVITIES }: RightSidebarProps) {
   return (
-    <aside className="rounded-[24px] border border-black/[0.07] bg-white p-5 shadow-[0_8px_40px_rgba(0,0,0,0.035)] xl:min-h-[calc(100vh-130px)]">
+    <aside className="rounded-[24px] border border-black/[0.07] bg-white p-5 shadow-[0_8px_40px_rgba(0,0,0,0.035)] xl:sticky xl:top-24 overflow-hidden">
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between">
           <div>

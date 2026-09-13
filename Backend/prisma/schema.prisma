@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,35 +6,13 @@ datasource db {
   provider = "postgresql"
 }
 
-enum DateStatus{
-  AVAILABLE
-  LOCKED
-}
-
-enum Category{
-  Love
-  Birthday
-  Aniversary
-  Milestone
-  Memory
-  Special
-}
-
-enum PaymentStatus{
-  PENDING
-  PAID
-  FAILED
-  REFUNDED
-}
-
-model DateEntry{
-  dateKey   String @id @db.VarChar(10)
+model DateEntry {
+  dateKey   String     @id @db.VarChar(10)
   month     Int
   day       Int
-  isPremium Boolean     @default(false)
-  status    DateStatus  @default(AVAILABLE)
-  createdAt DateTime    @default(now())
-  
+  isPremium Boolean    @default(false)
+  status    DateStatus @default(AVAILABLE)
+  createdAt DateTime   @default(now())
   claim     Claim?
   orders    Order[]
 
@@ -48,26 +20,25 @@ model DateEntry{
 }
 
 model Claim {
-  id            String    @id @default(uuid())
-  certificateId String    @unique @db.VarChar(50)
-  dateKey       String    @unique @db.VarChar(10)
-  ownerName     String    @db.VarChar(100)
-  initial       String    @db.VarChar(5)
-  imageUrl      String?   @db.VarChar(500) // Custom photo URL
-  isGift        Boolean   @default(false)
-  senderName    String?   @db.VarChar(100)
-  buyerEmail    String    @db.VarChar(255)
-  title         String    @db.VarChar(200)
-  story         String    @db.Text
-  category      Category  @default(Memory)
-  link          String?   @db.VarChar(500)
-  pricePaid     Int       // In paise or cents
-  currency      String    @default("INR") @db.VarChar(3)
-  paymentId     String    @unique @db.VarChar(100)
-  claimedAt     DateTime  @default(now())
-
-  dateEntry     DateEntry  @relation(fields: [dateKey], references: [dateKey])
+  id            String     @id @default(uuid())
+  certificateId String     @unique @db.VarChar(50)
+  dateKey       String     @unique @db.VarChar(10)
+  ownerName     String     @db.VarChar(100)
+  initial       String     @db.VarChar(5)
+  isGift        Boolean    @default(false)
+  senderName    String?    @db.VarChar(100)
+  buyerEmail    String     @db.VarChar(255)
+  title         String     @db.VarChar(200)
+  story         String
+  category      Category   @default(Memory)
+  link          String?    @db.VarChar(500)
+  pricePaid     Int
+  paymentId     String     @unique @db.VarChar(100)
+  claimedAt     DateTime   @default(now())
+  currency      String     @default("INR") @db.VarChar(3)
+  imageUrl      String?    @db.VarChar(500)
   activities    Activity[]
+  dateEntry     DateEntry  @relation(fields: [dateKey], references: [dateKey])
 
   @@index([certificateId])
   @@index([dateKey])
@@ -75,43 +46,89 @@ model Claim {
 }
 
 model Order {
-  id            String        @id // Dodo payment_id
-  dateKey       String        @db.VarChar(10)
-  amount        Int           // In paise or cents
-  currency      String        @default("INR") @db.VarChar(3)
-  status        PaymentStatus @default(PENDING)
-  name          String        @db.VarChar(100)
-  imageUrl      String?       @db.VarChar(500)
-  isGift        Boolean       @default(false)
-  senderName    String?       @db.VarChar(100)
-  buyerEmail    String        @db.VarChar(255)
-  title         String        @db.VarChar(200)
-  story         String        @db.Text
-  category      Category      @default(Memory)
-  link          String?       @db.VarChar(500)
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  dateEntry     DateEntry     @relation(fields: [dateKey], references: [dateKey])
+  id         String        @id
+  dateKey    String        @db.VarChar(10)
+  amount     Int
+  currency   String        @default("INR") @db.VarChar(3)
+  status     PaymentStatus @default(PENDING)
+  name       String        @db.VarChar(100)
+  isGift     Boolean       @default(false)
+  senderName String?       @db.VarChar(100)
+  buyerEmail String        @db.VarChar(255)
+  title      String        @db.VarChar(200)
+  story      String
+  category   Category      @default(Memory)
+  link       String?       @db.VarChar(500)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  imageUrl   String?       @db.VarChar(500)
+  dateEntry  DateEntry     @relation(fields: [dateKey], references: [dateKey])
 
   @@map("orders")
 }
 
 model Activity {
-  id         String   @id @default(uuid())
-  claimId    String
-  action     String   @db.VarChar(20)
-  actorName  String   @db.VarChar(100)
-  initial    String   @db.VarChar(5)
-  imageUrl   String?  @db.VarChar(500)
-  dateLabel  String   @db.VarChar(50)
-  title      String   @db.VarChar(200)
-  price      Int
-  currency   String   @default("INR") @db.VarChar(3)
-  createdAt  DateTime @default(now())
-
-  claim      Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  id        String   @id @default(uuid())
+  claimId   String
+  action    String   @db.VarChar(20)
+  actorName String   @db.VarChar(100)
+  initial   String   @db.VarChar(5)
+  dateLabel String   @db.VarChar(50)
+  title     String   @db.VarChar(200)
+  price     Int
+  createdAt DateTime @default(now())
+  currency  String   @default("INR") @db.VarChar(3)
+  imageUrl  String?  @db.VarChar(500)
+  claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
   @@index([createdAt(sort: Desc)])
   @@map("activities")
+}
+
+model promotions {
+  id        String   @id
+  title     String   @db.VarChar(120)
+  body      String   @db.VarChar(500)
+  ctaLabel  String   @default("Explore dates") @db.VarChar(60)
+  ctaUrl    String?  @db.VarChar(500)
+  imageUrl  String?  @db.VarChar(500)
+  enabled   Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  @@index([enabled, sortOrder])
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String   @unique @db.VarChar(255)
+  otpHash   String   @db.VarChar(255)
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("email_verifications")
+}
+
+enum DateStatus {
+  AVAILABLE
+  LOCKED
+}
+
+enum Category {
+  Love
+  Birthday
+  Anniversary
+  Milestone
+  Memory
+  Special
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
 }

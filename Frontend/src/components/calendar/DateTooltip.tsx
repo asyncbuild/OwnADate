@@ -5,6 +5,7 @@ import { CATEGORY_THEMES, DEFAULT_CATEGORY_THEME, STANDARD_PRICE, PREMIUM_PRICE 
 
 interface DateTooltipProps {
   cell: DateCell;
+  currency?: "INR" | "USD";
   alignLeft?: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -13,6 +14,7 @@ interface DateTooltipProps {
 
 export function DateTooltip({
   cell,
+  currency = "INR",
   alignLeft = false,
   onMouseEnter,
   onMouseLeave,
@@ -23,7 +25,11 @@ export function DateTooltip({
     ? CATEGORY_THEMES[owner.category] || DEFAULT_CATEGORY_THEME
     : null;
 
-  const price = cell.isPremium ? PREMIUM_PRICE : STANDARD_PRICE;
+  const isINR = currency === "INR";
+  const price = isINR
+    ? cell.isPremium ? PREMIUM_PRICE : STANDARD_PRICE
+    : cell.isPremium ? 14.99 : 8.99;
+  const symbol = isINR ? "₹" : "$";
 
   return (
     <div
@@ -44,7 +50,7 @@ export function DateTooltip({
           <div className="mt-0.5 flex items-center gap-1 text-[8px] font-medium text-black/40">
             {owner ? (
               <>
-                <Lock size={9} /> Permanently Owned
+                <Lock size={9} /> Active Date Claim
               </>
             ) : cell.isPremium ? (
               <span className="flex items-center gap-0.5 font-bold text-amber-600">
@@ -108,7 +114,7 @@ export function DateTooltip({
             )}
           </div>
 
-          <div className="mt-0.5 text-xl font-black">₹{price}</div>
+          <div className="mt-0.5 text-xl font-black">{symbol}{price}</div>
         </div>
       )}
 
@@ -119,7 +125,7 @@ export function DateTooltip({
         {owner ? (
           "View Certificate"
         ) : (
-          `Claim or Gift for ₹${price}`
+          `Claim or Gift for ${symbol}${price}`
         )}
 
         <ArrowRight size={11} />

@@ -6,6 +6,7 @@ import { Gift, Sparkles } from "lucide-react";
 interface MonthCardProps {
   month: string;
   cells: DateCell[];
+  currency?: "INR" | "USD";
   hoveredDate: string | null;
   setHoveredDate: (value: string | null) => void;
   onSelect: (date: DateCell) => void;
@@ -14,6 +15,7 @@ interface MonthCardProps {
 export function MonthCard({
   month,
   cells,
+  currency = "INR",
   hoveredDate,
   setHoveredDate,
   onSelect,
@@ -28,8 +30,8 @@ export function MonthCard({
         </span>
       </div>
 
-      {/* Week days */}
-      <div className="mb-1 grid grid-cols-7">
+      {/* Week days & Dates */}
+      <div className="grid grid-cols-7 gap-1">
         {weekDays.map((day, index) => (
           <div
             key={index}
@@ -103,6 +105,7 @@ export function MonthCard({
               {isHovered && (
                 <DateTooltip
                   cell={cell}
+                  currency={currency}
                   alignLeft={colIndex >= 5}
                   onMouseEnter={() => setHoveredDate(cell.dateKey)}
                   onMouseLeave={() => setHoveredDate(null)}
