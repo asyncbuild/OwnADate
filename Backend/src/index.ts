@@ -78,11 +78,12 @@ const dodo = new DodoPayments({
   bearerToken: process.env.DODO_PAYMENTS_API_KEY || process.env.DODO_BEARER_TOKEN!,
   environment: (process.env.DODO_PAYMENTS_ENVIRONMENT || process.env.DODO_ENVIRONMENT) === "live_mode" ? "live_mode" : "test_mode",
 })
-const smtpPort = Number(process.env.SMTP_PORT) || 587;
+const smtpPort = Number(process.env.SMTP_PORT) || 465;
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: smtpPort,
   secure: process.env.SMTP_SECURE === "true" || smtpPort === 465, 
+  family: 4,
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -90,7 +91,7 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false,
   },
-});
+} as any);
 const PRICES = {
     INR: { STANDARD: 49900, PREMIUM: 99900 },
     USD: { STANDARD: 899, PREMIUM: 1499 },
