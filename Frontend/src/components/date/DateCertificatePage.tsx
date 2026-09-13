@@ -29,7 +29,7 @@ export function DateCertificatePage({
 
     let isMounted = true;
     let attempt = 0;
-    const maxAttempts = isJustClaimed ? 6 : 1;
+    const maxAttempts = isJustClaimed ? 8 : 5;
 
     const fetchCertificate = async () => {
       try {
