@@ -16,7 +16,10 @@ import { fileTypeFromBuffer } from "file-type";
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 
+import dns from "dns";
+
 dotenv.config();
+dns.setDefaultResultOrder("ipv4first");
 
 const app = express();
 const server = http.createServer(app);
@@ -75,11 +78,11 @@ const dodo = new DodoPayments({
   bearerToken: process.env.DODO_PAYMENTS_API_KEY || process.env.DODO_BEARER_TOKEN!,
   environment: (process.env.DODO_PAYMENTS_ENVIRONMENT || process.env.DODO_ENVIRONMENT) === "live_mode" ? "live_mode" : "test_mode",
 })
+const smtpPort = Number(process.env.SMTP_PORT) || 587;
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: false, 
-  requireTLS: true,
+  port: smtpPort,
+  secure: process.env.SMTP_SECURE === "true" || smtpPort === 465, 
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
@@ -562,6 +565,51 @@ app.get("/api/geo", async (req: Request, res: Response) => {
 
   return res.json({ currency: "INR" });
 });
+async function sendVerificationEmail(toEmail: string, otp: string) {
+  const htmlContent = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 420px; margin: 0 auto; padding: 24px; border: 1px solid #e5e5e5; border-radius: 16px;">
+      <h2 style="font-size: 20px; font-weight: 700; color: #111; margin-bottom: 8px;">Claim Verification</h2>
+      <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Use the 6-digit code below to verify your email and reserve your date:</p>
+      <div style="background: #fafaf8; border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #000;">${otp}</span>
+      </div>
+      <p style="font-size: 12px; color: #999; margin: 0;">Valid for 5 minutes. If you did not initiate this, you can ignore this email.</p>
+    </div>
+  `;
+
+  if (process.env.RESEND_API_KEY) {
+    try {
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+          to: [toEmail],
+          subject: `Your Verification Code: ${otp}`,
+          html: htmlContent,
+        }),
+      });
+      if (res.ok) {
+        return;
+      }
+      const errData: any = await res.json().catch(() => ({}));
+      console.warn("Resend API warning, falling back to SMTP:", errData?.message || res.status);
+    } catch (resendErr) {
+      console.warn("Resend API fetch error, falling back to SMTP:", resendErr);
+    }
+  }
+
+  await transporter.sendMail({
+    from: process.env.SENDER_EMAIL || process.env.SMTP_USER,
+    to: toEmail,
+    subject: `Your Verification Code: ${otp}`,
+    html: htmlContent,
+  });
+}
+
   // -------------------------------------------------------------
   // POST /api/auth/send-otp
   // -------------------------------------------------------------
@@ -591,30 +639,16 @@ app.get("/api/geo", async (req: Request, res: Response) => {
         },
       });
 
-      await transporter.sendMail({
-        from: process.env.SENDER_EMAIL || process.env.SMTP_USER,
-        to: email,
-        subject: `Your Verification Code: ${otp}`,
-        html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 420px; margin: 0 auto; padding: 24px; border: 1px solid #e5e5e5; border-radius: 16px;">
-            <h2 style="font-size: 20px; font-weight: 700; color: #111; margin-bottom: 8px;">Claim Verification</h2>
-            <p style="color: #666; font-size: 14px; margin-bottom: 20px;">Use the 6-digit code below to verify your email and reserve your date:</p>
-            <div style="background: #fafaf8; border-radius: 12px; padding: 18px; text-align: center; margin-bottom: 20px;">
-              <span style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: #000;">${otp}</span>
-            </div>
-            <p style="font-size: 12px; color: #999; margin: 0;">Valid for 5 minutes. If you did not initiate this, you can ignore this email.</p>
-          </div>
-        `,
-      });
+      await sendVerificationEmail(email, otp);
 
       res.json({ success: true, message: "OTP sent successfully" });
     } catch (err: any) {
-      console.error("Nodemailer OTP sending error:", err?.message || err);
-      const isMissingCredentials = !process.env.SMTP_USER || !process.env.SMTP_PASS;
+      console.error("OTP sending error:", err?.message || err);
+      const isMissingCredentials = !process.env.RESEND_API_KEY && (!process.env.SMTP_USER || !process.env.SMTP_PASS);
       const detail = err?.message ? `: ${err.message}` : "";
       res.status(500).json({
         error: isMissingCredentials
-          ? "SMTP credentials missing on server. Please add SMTP_USER and SMTP_PASS to environment variables."
+          ? "SMTP / Resend API credentials missing on server. Please add RESEND_API_KEY or SMTP_USER and SMTP_PASS."
           : `Failed to send verification email${detail}`,
       });
     }
