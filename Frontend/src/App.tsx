@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DateCell, DateOwner } from "./types/calendar";
-import { INITIAL_OWNED_DATES, INITIAL_ACTIVITIES } from "./constants/calendar";
+import { INITIAL_OWNED_DATES, INITIAL_ACTIVITIES, PREMIUM_DATE_KEYS } from "./constants/calendar";
 import { Header } from "./components/layout/Header";
 import { LeftSidebar } from "./components/layout/LeftSidebar";
 import { RightSidebar } from "./components/layout/RightSidebar";
@@ -74,6 +74,28 @@ export default function App() {
     return Object.keys(ownedDates).length;
   }, [ownedDates]);
 
+  useEffect(() => {
+    const handlePopState = () => {
+      const matchKey = window.location.pathname.match(/^\/date\/(\d{4}-\d{2}-\d{2})$/)?.[1];
+      if (matchKey) {
+        setViewingCertificateKey(matchKey);
+        setActivePage("certificate");
+      } else {
+        setViewingCertificateKey(null);
+        setActivePage("calendar");
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const handleBackToCalendar = () => {
+    window.history.pushState({}, "", "/");
+    setViewingCertificateKey(null);
+    setActivePage("calendar");
+  };
+
   // Initial Server Warmup / Loading Screen
   if (initialLoading && !publicDateKey) {
     return (
@@ -137,8 +159,7 @@ export default function App() {
       <DateCertificatePage
         dateKey={publicDateKey}
         onBack={() => {
-          window.history.pushState({}, "", "/");
-          window.location.reload();
+          window.location.href = "/";
         }}
       />
     );
@@ -150,7 +171,7 @@ export default function App() {
       <DateCertificatePage
         dateKey={viewingCertificateKey}
         owner={ownedDates[viewingCertificateKey]}
-        onBack={() => setActivePage("calendar")}
+        onBack={handleBackToCalendar}
       />
     );
   }
@@ -185,7 +206,22 @@ export default function App() {
             onSelect={setSelectedDate}
           />
 
-          <RightSidebar activities={activities} />
+          <RightSidebar
+            activities={activities}
+            currency={currency}
+            onSelectDateKey={(dateKey) => {
+              const parts = dateKey.split("-");
+              if (parts.length === 3) {
+                const day = parseInt(parts[2], 10);
+                setSelectedDate({
+                  day,
+                  dateKey,
+                  isPremium: PREMIUM_DATE_KEYS.has(dateKey),
+                  owner: ownedDates[dateKey],
+                });
+              }
+            }}
+          />
         </div>
       </main>
 
@@ -201,8 +237,7 @@ export default function App() {
           onClose={() => setSelectedDate(null)}
           onViewCertificate={(key) => {
             setSelectedDate(null);
-            setViewingCertificateKey(key);
-            setActivePage("certificate");
+            window.open(`/date/${key}`, "_blank");
           }}
         />
       )}
