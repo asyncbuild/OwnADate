@@ -1,5 +1,3 @@
-import { CalendarDays } from "lucide-react";
-
 interface HeaderProps {
   onOpenAbout?: () => void;
   onOpenRules?: () => void;

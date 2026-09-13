@@ -11,7 +11,6 @@ import { DateCertificatePage } from "./components/date/DateCertificatePage";
 import { AboutRulesPage } from "./components/pages/AboutRulesPage";
 import { apiUrl } from "./config/api";
 import { getDetectedCurrency } from "./utils/currency";
-import { Sparkles, Loader2 } from "lucide-react";
 
 export default function App() {
   const [ownedDates, setOwnedDates] = useState<Record<string, DateOwner>>(INITIAL_OWNED_DATES);

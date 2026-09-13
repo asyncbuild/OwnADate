@@ -1,4 +1,4 @@
-import { ArrowRight, Gift, Sparkles, Flame } from "lucide-react";
+import { ArrowRight, Gift, Sparkles } from "lucide-react";
 
 const MARKETING_HOOKS = [
   {
@@ -56,7 +56,7 @@ export function LeftSidebar({ claimedCount }: LeftSidebarProps) {
       <div>
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#f2f2ef] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-black/55">
           <Sparkles size={12} />
-          365 Unique Dates
+          {claimedCount && claimedCount > 0 ? `${claimedCount} / 365 Dates Claimed` : "365 Unique Dates"}
         </div>
 
         <h1 className="text-[32px] sm:text-[34px] font-black leading-[0.98] tracking-[-0.045em]">
