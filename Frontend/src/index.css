@@ -66,7 +66,7 @@ a {
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-/* Upward Vertical Marquee for Desktop Left Sidebar */
+/* Upward Vertical Marquee for Desktop Sidebars */
 @keyframes marqueeVertical {
   0% {
     transform: translateY(0%);
@@ -80,7 +80,17 @@ a {
   animation: marqueeVertical 140s linear infinite;
 }
 
-.animate-marquee-vertical:hover {
+.animate-marquee-vertical-slow {
+  animation: marqueeVertical 360s linear infinite;
+}
+
+.animate-marquee-vertical-fast {
+  animation: marqueeVertical 50s linear infinite;
+}
+
+.animate-marquee-vertical:hover,
+.animate-marquee-vertical-slow:hover,
+.animate-marquee-vertical-fast:hover {
   animation-play-state: paused;
 }
 
@@ -98,7 +108,17 @@ a {
   animation: marqueeHorizontal 120s linear infinite;
 }
 
-.animate-marquee-horizontal:hover {
+.animate-marquee-horizontal-slow {
+  animation: marqueeHorizontal 320s linear infinite;
+}
+
+.animate-marquee-horizontal-fast {
+  animation: marqueeHorizontal 45s linear infinite;
+}
+
+.animate-marquee-horizontal:hover,
+.animate-marquee-horizontal-slow:hover,
+.animate-marquee-horizontal-fast:hover {
   animation-play-state: paused;
 }
 

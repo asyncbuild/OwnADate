@@ -61,7 +61,7 @@ export function LeftSidebar({ claimedCount }: LeftSidebarProps) {
       <div>
         <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#f2f2ef] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-black/55">
           <Sparkles size={12} />
-          {claimedCount && claimedCount > 0 ? `${claimedCount} / 365 Dates Claimed` : "365 Unique Dates"}
+          {claimedCount && claimedCount > 0 ? `${claimedCount} / 365 Dates Claimed in 2026` : "365 Unique Dates in 2026"}
         </div>
 
         <h1 className="text-[32px] sm:text-[34px] font-black leading-[0.98] tracking-[-0.045em]">
@@ -109,7 +109,7 @@ export function LeftSidebar({ claimedCount }: LeftSidebarProps) {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-white via-white/85 to-transparent" />
 
           {/* Marquee Vertical Track */}
-          <div className="animate-marquee-vertical space-y-2 py-1 px-1">
+          <div className="animate-marquee-vertical-slow space-y-2 py-1 px-1">
             {[...MARKETING_HOOKS, ...MARKETING_HOOKS].map((hook, index) => (
               <div
                 key={`${hook.id}-${index}`}
@@ -143,7 +143,7 @@ export function LeftSidebar({ claimedCount }: LeftSidebarProps) {
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-white to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-white to-transparent" />
 
-          <div className="animate-marquee-horizontal flex gap-3 w-max px-1">
+          <div className="animate-marquee-horizontal-slow flex gap-3 w-max px-1">
             {[...MARKETING_HOOKS, ...MARKETING_HOOKS].map((hook, index) => (
               <div
                 key={`mob-${hook.id}-${index}`}

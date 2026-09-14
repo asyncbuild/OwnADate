@@ -28,7 +28,7 @@ export function CalendarGrid({
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-black/35">
-            The Calendar
+            The 2026 Calendar
           </div>
 
           <h2 className="mt-1 text-3xl font-black tracking-[-0.05em]">

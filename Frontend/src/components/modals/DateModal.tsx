@@ -528,16 +528,16 @@ export function DateModal({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-black/40 whitespace-nowrap">
                     Category
                   </label>
                   <div className="relative mt-1">
                     <button
                       type="button"
                       onClick={() => setCategoryOpen(!categoryOpen)}
-                      className="flex w-full items-center justify-between rounded-xl border border-black/10 bg-[#fafaf8] px-3 py-2 text-xs font-semibold text-stone-900 transition-all hover:border-black/30 hover:bg-white focus:border-black focus:outline-none"
+                      className="flex w-full items-center justify-between rounded-xl border border-black/10 bg-[#fafaf8] px-3 py-2.5 text-xs font-semibold text-stone-900 transition-all hover:border-black/30 hover:bg-white focus:border-black focus:outline-none"
                     >
                       <div className="flex items-center gap-2">
                         <span className={`flex h-5 w-5 items-center justify-center rounded-md ${selectedCatObj.bgClass} ${selectedCatObj.colorClass}`}>
@@ -600,7 +600,7 @@ export function DateModal({
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-black/40 whitespace-nowrap">
                     Custom Link (Optional)
                   </label>
                   <input
@@ -608,7 +608,7 @@ export function DateModal({
                     placeholder="https://..."
                     value={link}
                     onChange={(e) => setLink(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-black/10 bg-[#fafaf8] px-3.5 py-2.5 text-xs font-semibold focus:border-black focus:outline-none"
+                    className="mt-1 w-full rounded-xl border border-black/10 bg-[#fafaf8] px-3.5 py-2.5 text-xs font-semibold focus:border-black focus:bg-white focus:outline-none"
                   />
                 </div>
               </div>

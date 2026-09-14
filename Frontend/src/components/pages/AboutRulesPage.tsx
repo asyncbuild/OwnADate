@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Sparkles, ShieldCheck, Heart, Lock, CalendarDays, Gift, Award, HelpCircle, ArrowRight, AlertTriangle } from "lucide-react";
 
 interface AboutRulesPageProps {
@@ -14,12 +14,40 @@ export function AboutRulesPage({
   const [displayTab, setDisplayTab] = useState<"about" | "rules">(initialTab);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
+  const aboutRef = useRef<HTMLButtonElement>(null);
+  const rulesRef = useRef<HTMLButtonElement>(null);
+  const [pillStyle, setPillStyle] = useState<{ left: number; width: number }>({
+    left: 4,
+    width: 0,
+  });
+
   useEffect(() => {
     if (initialTab) {
       setActiveTab(initialTab);
       setDisplayTab(initialTab);
     }
   }, [initialTab]);
+
+  useEffect(() => {
+    const updatePill = () => {
+      const activeElement = activeTab === "about" ? aboutRef.current : rulesRef.current;
+      if (activeElement) {
+        setPillStyle({
+          left: activeElement.offsetLeft,
+          width: activeElement.offsetWidth,
+        });
+      }
+    };
+
+    updatePill();
+    // Re-measure after initial layout/fonts load
+    const timer = setTimeout(updatePill, 50);
+    window.addEventListener("resize", updatePill);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", updatePill);
+    };
+  }, [activeTab]);
 
   const handleTabChange = (targetTab: "about" | "rules") => {
     if (targetTab === activeTab || isFadingOut) return;
@@ -53,17 +81,20 @@ export function AboutRulesPage({
           <span className="sm:hidden">Back</span>
         </button>
 
-        {/* Tab Switcher with Animated Sliding Background Pill */}
-        <div className="relative flex shrink-0 items-center rounded-full border border-black/10 bg-white p-1 shadow-sm">
-          <div
-            className={`absolute top-1 bottom-1 rounded-full bg-black transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-sm ${
-              activeTab === "about"
-                ? "left-1 w-[68px] sm:w-[76px]"
-                : "left-[71px] sm:left-[79px] w-[142px] sm:w-[156px]"
-            }`}
-          />
+        {/* Tab Switcher with Dynamic Sliding Background Pill */}
+        <div className="relative flex shrink-0 items-center rounded-full border border-black/10 bg-white p-1 shadow-sm overflow-hidden">
+          {pillStyle.width > 0 && (
+            <div
+              style={{
+                left: `${pillStyle.left}px`,
+                width: `${pillStyle.width}px`,
+              }}
+              className="absolute top-1 bottom-1 rounded-full bg-black shadow-sm transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            />
+          )}
 
           <button
+            ref={aboutRef}
             type="button"
             onClick={() => handleTabChange("about")}
             className={`relative z-10 rounded-full px-3.5 py-1.5 sm:px-4 text-xs font-bold whitespace-nowrap transition-colors duration-200 ${
@@ -75,6 +106,7 @@ export function AboutRulesPage({
             About
           </button>
           <button
+            ref={rulesRef}
             type="button"
             onClick={() => handleTabChange("rules")}
             className={`relative z-10 rounded-full px-3.5 py-1.5 sm:px-4 text-xs font-bold whitespace-nowrap transition-colors duration-200 ${

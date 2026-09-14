@@ -107,7 +107,7 @@ export function RightSidebar({
   }, [currency]);
 
   return (
-    <aside className="rounded-[24px] border border-black/[0.07] bg-white p-5 shadow-[0_8px_40px_rgba(0,0,0,0.035)] xl:sticky xl:top-24 overflow-hidden flex flex-col gap-5">
+    <aside className="rounded-[24px] border border-black/[0.07] bg-white p-5 shadow-[0_8px_40px_rgba(0,0,0,0.035)] xl:sticky xl:top-24 overflow-hidden flex flex-col gap-4">
       {/* 1. Header & Minimal Live Viewer Status */}
       <div>
         <div className="flex items-center justify-between">
@@ -142,8 +142,10 @@ export function RightSidebar({
         </div>
       </div>
 
-      {/* 2. Live Activity Feed */}
-      <div className="flex-1 flex flex-col min-h-0 border-t border-black/[0.06] pt-4">
+      {/* =========================================================
+          DESKTOP (xl:): CONTINUOUS UPWARD FLOATING LIVE FEED
+      ========================================================== */}
+      <div className="hidden xl:flex xl:flex-col flex-1 min-h-0 border-t border-black/[0.06] pt-4">
         <div className="flex items-center justify-between mb-3 px-0.5">
           <div className="flex items-center gap-1.5">
             <Calendar size={12} className="text-black/40" />
@@ -161,11 +163,11 @@ export function RightSidebar({
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t from-white via-white/80 to-transparent" />
 
           {/* Marquee Track */}
-          <div className="animate-marquee-vertical space-y-1.5 py-1">
+          <div className="animate-marquee-vertical-fast space-y-1.5 py-1">
             {activitiesList.length > 0 ? (
               [...activitiesList, ...activitiesList].map((activity, idx) => (
                 <ActivityItem
-                  key={`${activity.id}-${idx}`}
+                  key={`desk-${activity.id}-${idx}`}
                   activity={activity}
                   currency={currency}
                   onClick={() => {
@@ -177,6 +179,69 @@ export function RightSidebar({
               ))
             ) : (
               <div className="p-4 text-center text-[11px] font-medium text-black/40">
+                No recent activity yet.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================
+          MOBILE & TABLET (<xl): SIDE-BY-SIDE HORIZONTAL MARQUEE
+      ========================================================== */}
+      <div className="xl:hidden border-t border-black/[0.06] pt-4">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <div className="flex items-center gap-1.5">
+            <Calendar size={12} className="text-black/40" />
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-black/40">
+              Recent Claims
+            </span>
+          </div>
+          <span className="text-[9px] font-bold text-black/30">Hover to pause</span>
+        </div>
+
+        <div className="relative overflow-hidden py-2">
+          {/* Left & Right Edge Fades */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-8 bg-gradient-to-r from-white to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-8 bg-gradient-to-l from-white to-transparent" />
+
+          <div className="animate-marquee-horizontal-fast flex gap-3 w-max px-1">
+            {activitiesList.length > 0 ? (
+              [...activitiesList, ...activitiesList].map((activity, idx) => (
+                <div
+                  key={`mob-act-${activity.id}-${idx}`}
+                  className="w-64 shrink-0 rounded-2xl border border-black/[0.06] bg-[#fafaf7] p-3 shadow-xs cursor-pointer hover:border-black/20 hover:bg-white transition-all"
+                  onClick={() => {
+                    if (activity.dateKey) {
+                      onSelectDateKey?.(activity.dateKey);
+                    }
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-[9px] font-black text-white shrink-0">
+                        {activity.initial || activity.name?.charAt(0) || "U"}
+                      </div>
+                      <div className="truncate text-xs font-bold text-black">
+                        {activity.name}
+                      </div>
+                    </div>
+
+                    <span className="shrink-0 rounded-full bg-black/5 px-2 py-0.5 text-[9px] font-black text-black/70">
+                      {activity.currency === "USD" ? "$" : "₹"}{activity.price}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10px]">
+                    <span className="truncate font-semibold text-black/60">
+                      {activity.action === "gifted" ? "Gifted" : "Claimed"} {activity.date}
+                    </span>
+                    <span className="text-black/35 font-medium shrink-0 ml-2">{activity.time}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-2 text-center text-[11px] font-medium text-black/40">
                 No recent activity yet.
               </div>
             )}
