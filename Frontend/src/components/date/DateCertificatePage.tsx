@@ -1,5 +1,7 @@
 import { ArrowLeft, Download, Share2, Check, Sparkles, Gift } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { toPng } from "html-to-image";
+import html2canvas from "html2canvas";
 import type { DateOwner } from "../../types/calendar";
 import { apiUrl } from "../../config/api";
 import { formatDate } from "../../utils/calendar";
@@ -16,6 +18,8 @@ export function DateCertificatePage({
   onBack,
 }: DateCertificatePageProps) {
   const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const certificateRef = useRef<HTMLDivElement>(null);
   const [certificateOwner, setCertificateOwner] = useState<DateOwner | null>(
     owner || null
   );
@@ -144,8 +148,48 @@ export function DateCertificatePage({
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownload = async () => {
+    if (!certificateRef.current || downloading) return;
+    setDownloading(true);
+
+    try {
+      const element = certificateRef.current;
+      const dataUrl = await toPng(element, {
+        quality: 0.95,
+        pixelRatio: 2,
+        backgroundColor: "#faf8f1",
+        cacheBust: true,
+      });
+
+      const link = document.createElement("a");
+      link.download = `OwnADate_Certificate_${dateKey}.png`;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.warn("toPng failed, trying html2canvas fallback:", err);
+      try {
+        const canvas = await html2canvas(certificateRef.current, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#faf8f1",
+          logging: false,
+        });
+        const dataUrl = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = `OwnADate_Certificate_${dateKey}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (fallbackErr) {
+        console.error("All certificate download methods failed:", fallbackErr);
+      }
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -195,11 +239,12 @@ export function DateCertificatePage({
           </button>
 
           <button
-            onClick={handlePrint}
-            className="flex items-center gap-1.5 rounded-full bg-[#151515] px-3.5 py-2 sm:px-4 sm:py-2.5 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-black/80 hover:shadow-xl"
+            onClick={handleDownload}
+            disabled={downloading}
+            className="flex items-center gap-1.5 rounded-full bg-[#151515] px-3.5 py-2 sm:px-4 sm:py-2.5 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-black/80 hover:shadow-xl disabled:opacity-50 cursor-pointer"
           >
-            <Download size={14} />
-            <span>Print / PDF</span>
+            <Download size={14} className={downloading ? "animate-bounce" : ""} />
+            <span>{downloading ? "Downloading..." : "Download Certificate"}</span>
           </button>
         </div>
       </div>
@@ -213,7 +258,10 @@ export function DateCertificatePage({
         <div className="relative rounded-[24px] sm:rounded-[38px] bg-[#d9d4c8] p-[4px] sm:p-[7px] shadow-[0_20px_60px_rgba(0,0,0,0.12)] sm:shadow-[0_35px_100px_rgba(0,0,0,0.18)] print:h-full print:rounded-none print:bg-white print:p-0 print:shadow-none">
 
           {/* Outer frame */}
-          <div className="relative overflow-hidden rounded-[20px] sm:rounded-[32px] border border-black/15 bg-[#faf8f1] print:h-full print:rounded-[16px] print:border-black/20">
+          <div
+            ref={certificateRef}
+            className="relative overflow-hidden rounded-[20px] sm:rounded-[32px] border border-black/15 bg-[#faf8f1] print:h-full print:rounded-[16px] print:border-black/20"
+          >
 
             {/* =====================================================
                 SUBTLE PAPER LIGHTING
