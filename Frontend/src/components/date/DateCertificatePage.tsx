@@ -326,7 +326,7 @@ export function DateCertificatePage({
         <div className="flex items-center justify-between sm:justify-start gap-2.5 w-full sm:w-auto">
           <button
             onClick={onBack}
-            className="group flex items-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-3.5 py-2 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:border-black hover:bg-black hover:text-white"
+            className="group flex items-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-3.5 py-2 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:border-black hover:bg-black hover:text-white shrink-0"
           >
             <ArrowLeft
               size={14}
@@ -336,7 +336,7 @@ export function DateCertificatePage({
           </button>
 
           {/* Theme Selector: Minimal vs Midnight */}
-          <div className="flex items-center gap-1 rounded-full border border-black/10 bg-white/95 p-1 shadow-sm text-[10.5px] font-bold">
+          <div className="flex items-center gap-1 rounded-full border border-black/10 bg-white/95 p-1 shadow-sm text-[10.5px] font-bold shrink-0">
             <button
               onClick={() => setTheme("minimal")}
               className={`rounded-full px-3 py-1 transition-all duration-200 cursor-pointer ${
@@ -361,10 +361,10 @@ export function DateCertificatePage({
         </div>
 
         {/* Right Row: Share & Download Buttons */}
-        <div className="flex items-center gap-2 justify-end w-full sm:w-auto">
+        <div className="flex items-center gap-2.5 justify-between sm:justify-end w-full sm:w-auto">
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-3.5 py-2 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:border-black hover:shadow-lg"
+            className="flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-4 py-2 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:border-black hover:shadow-lg"
           >
             {copied ? (
               <Check size={14} className="text-emerald-500" />
@@ -377,7 +377,7 @@ export function DateCertificatePage({
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="flex items-center gap-1.5 rounded-full bg-[#151515] px-3.5 py-2 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:bg-black/80 hover:shadow-xl disabled:opacity-50 cursor-pointer"
+            className="flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-full bg-[#151515] px-4 py-2 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:bg-black/80 hover:shadow-xl disabled:opacity-50 cursor-pointer whitespace-nowrap"
           >
             <Download size={14} className={downloading ? "animate-bounce" : ""} />
             <span>{downloading ? "Downloading..." : "Download Certificate"}</span>
