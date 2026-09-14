@@ -141,7 +141,7 @@ a {
 /* Dedicated Print Styles - Fits Certificate on 1 Single Page Perfectly across Desktop & Mobile */
 @media print {
   @page {
-    size: portrait;
+    size: A4 portrait;
     margin: 0;
   }
 

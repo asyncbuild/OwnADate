@@ -154,15 +154,17 @@ export function DateCertificatePage({
 
     try {
       const element = certificateRef.current;
+      // Export at 150 DPI A4 portrait dimensions: 1240px x 1754px
       const dataUrl = await toPng(element, {
-        quality: 0.95,
-        pixelRatio: 2,
+        quality: 1.0,
+        canvasWidth: 1240,
+        canvasHeight: 1754,
         backgroundColor: "#faf8f1",
         cacheBust: true,
       });
 
       const link = document.createElement("a");
-      link.download = `OwnADate_Certificate_${dateKey}.png`;
+      link.download = `OwnADate_Certificate_${dateKey}_A4.png`;
       link.href = dataUrl;
       document.body.appendChild(link);
       link.click();
@@ -179,7 +181,7 @@ export function DateCertificatePage({
         });
         const dataUrl = canvas.toDataURL("image/png");
         const link = document.createElement("a");
-        link.download = `OwnADate_Certificate_${dateKey}.png`;
+        link.download = `OwnADate_Certificate_${dateKey}_A4.png`;
         link.href = dataUrl;
         document.body.appendChild(link);
         link.click();
@@ -199,7 +201,7 @@ export function DateCertificatePage({
           SUCCESS MESSAGE
       ========================================================== */}
       {isJustClaimed && (
-        <div className="mx-auto mb-5 sm:mb-7 max-w-4xl rounded-2xl border border-emerald-900/10 bg-[#f5faf6] px-4 py-3 sm:px-5 sm:py-4 shadow-sm print:hidden">
+        <div className="mx-auto mb-4 sm:mb-6 max-w-2xl rounded-2xl border border-emerald-900/10 bg-[#f5faf6] px-4 py-3 shadow-sm print:hidden">
           <div className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-800">
             <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-emerald-700 text-white">
               <Check size={12} strokeWidth={3} />
@@ -212,7 +214,7 @@ export function DateCertificatePage({
       {/* =========================================================
           ACTION BAR
       ========================================================== */}
-      <div className="mx-auto flex max-w-4xl items-center justify-between print:hidden">
+      <div className="mx-auto flex max-w-[794px] items-center justify-between print:hidden">
         <button
           onClick={onBack}
           className="group flex items-center gap-1.5 sm:gap-2 rounded-full border border-black/10 bg-white/90 px-3.5 py-2 sm:px-4 sm:py-2.5 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-black hover:bg-black hover:text-white hover:shadow-lg"
@@ -244,23 +246,23 @@ export function DateCertificatePage({
             className="flex items-center gap-1.5 rounded-full bg-[#151515] px-3.5 py-2 sm:px-4 sm:py-2.5 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-black/80 hover:shadow-xl disabled:opacity-50 cursor-pointer"
           >
             <Download size={14} className={downloading ? "animate-bounce" : ""} />
-            <span>{downloading ? "Downloading..." : "Download Certificate"}</span>
+            <span>{downloading ? "Downloading..." : "Download A4 Certificate"}</span>
           </button>
         </div>
       </div>
 
       {/* =========================================================
-          CERTIFICATE
+          CERTIFICATE - STRICT A4 PROPORTIONS (1:1.414)
       ========================================================== */}
-      <div className="mx-auto mt-4 sm:mt-8 max-w-4xl print:mt-0 print:h-full print:w-full print:max-w-none">
+      <div className="mx-auto mt-4 sm:mt-6 w-full max-w-[794px] print:mt-0 print:h-full print:w-full print:max-w-none">
 
         {/* Outer paper shadow */}
-        <div className="relative rounded-[24px] sm:rounded-[38px] bg-[#d9d4c8] p-[4px] sm:p-[7px] shadow-[0_20px_60px_rgba(0,0,0,0.12)] sm:shadow-[0_35px_100px_rgba(0,0,0,0.18)] print:h-full print:rounded-none print:bg-white print:p-0 print:shadow-none">
+        <div className="relative rounded-[20px] sm:rounded-[32px] bg-[#d9d4c8] p-[3px] sm:p-[6px] shadow-[0_20px_60px_rgba(0,0,0,0.12)] sm:shadow-[0_35px_100px_rgba(0,0,0,0.18)] print:h-full print:rounded-none print:bg-white print:p-0 print:shadow-none">
 
-          {/* Outer frame */}
+          {/* Outer frame - Enforces exact A4 aspect ratio (1 : 1.414) */}
           <div
             ref={certificateRef}
-            className="relative overflow-hidden rounded-[20px] sm:rounded-[32px] border border-black/15 bg-[#faf8f1] print:h-full print:rounded-[16px] print:border-black/20"
+            className="relative overflow-hidden rounded-[16px] sm:rounded-[26px] border border-black/15 bg-[#faf8f1] aspect-[1/1.414] flex flex-col justify-between print:h-full print:rounded-[16px] print:border-black/20"
           >
 
             {/* =====================================================
@@ -271,100 +273,100 @@ export function DateCertificatePage({
             {/* =====================================================
                 DECORATIVE DOUBLE FRAME
             ====================================================== */}
-            <div className="pointer-events-none absolute inset-2 sm:inset-3 rounded-[16px] sm:rounded-[27px] border border-black/[0.10] print:inset-2.5 print:rounded-[14px]" />
-            <div className="pointer-events-none absolute inset-[7px] sm:inset-[13px] rounded-[13px] sm:rounded-[24px] border border-black/[0.045] print:inset-[7px] print:rounded-[11px]" />
+            <div className="pointer-events-none absolute inset-2 sm:inset-3 rounded-[13px] sm:rounded-[22px] border border-black/[0.10] print:inset-2.5 print:rounded-[14px]" />
+            <div className="pointer-events-none absolute inset-[6px] sm:inset-[10px] rounded-[10px] sm:rounded-[18px] border border-black/[0.045] print:inset-[7px] print:rounded-[11px]" />
 
             {/* =====================================================
                 CORNER ORNAMENTS
             ====================================================== */}
-            <div className="pointer-events-none absolute left-3 top-3 sm:left-6 sm:top-6 h-12 w-12 sm:h-20 sm:w-20 print:left-4 print:top-4 print:h-12 print:w-12">
+            <div className="pointer-events-none absolute left-2.5 top-2.5 sm:left-5 sm:top-5 h-8 w-8 sm:h-16 sm:w-16 print:left-4 print:top-4 print:h-12 print:w-12">
               <div className="absolute left-0 top-0 h-full w-px bg-black/15" />
               <div className="absolute left-0 top-0 h-px w-full bg-black/15" />
-              <div className="absolute left-2 top-2 sm:left-3 sm:top-3 h-1.5 w-1.5 sm:h-2 sm:w-2 border border-black/20 rotate-45 print:left-2 print:top-2 print:h-1.5 print:w-1.5" />
+              <div className="absolute left-1.5 top-1.5 sm:left-2.5 sm:top-2.5 h-1 w-1 sm:h-2 sm:w-2 border border-black/20 rotate-45" />
             </div>
 
-            <div className="pointer-events-none absolute right-3 top-3 sm:right-6 sm:top-6 h-12 w-12 sm:h-20 sm:w-20 print:right-4 print:top-4 print:h-12 print:w-12">
+            <div className="pointer-events-none absolute right-2.5 top-2.5 sm:right-5 sm:top-5 h-8 w-8 sm:h-16 sm:w-16 print:right-4 print:top-4 print:h-12 print:w-12">
               <div className="absolute right-0 top-0 h-full w-px bg-black/15" />
               <div className="absolute right-0 top-0 h-px w-full bg-black/15" />
-              <div className="absolute right-2 top-2 sm:right-3 sm:top-3 h-1.5 w-1.5 sm:h-2 sm:w-2 border border-black/20 rotate-45 print:right-2 print:top-2 print:h-1.5 print:w-1.5" />
+              <div className="absolute right-1.5 top-1.5 sm:right-2.5 sm:top-2.5 h-1 w-1 sm:h-2 sm:w-2 border border-black/20 rotate-45" />
             </div>
 
-            <div className="pointer-events-none absolute bottom-3 left-3 sm:bottom-6 sm:left-6 h-12 w-12 sm:h-20 sm:w-20 print:bottom-4 print:left-4 print:h-12 print:w-12">
+            <div className="pointer-events-none absolute bottom-2.5 left-2.5 sm:bottom-5 sm:left-5 h-8 w-8 sm:h-16 sm:w-16 print:bottom-4 print:left-4 print:h-12 print:w-12">
               <div className="absolute bottom-0 left-0 h-full w-px bg-black/15" />
               <div className="absolute bottom-0 left-0 h-px w-full bg-black/15" />
-              <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3 h-1.5 w-1.5 sm:h-2 sm:w-2 border border-black/20 rotate-45 print:bottom-2 print:left-2 print:h-1.5 print:w-1.5" />
+              <div className="absolute bottom-1.5 left-1.5 sm:bottom-2.5 sm:left-2.5 h-1 w-1 sm:h-2 sm:w-2 border border-black/20 rotate-45" />
             </div>
 
-            <div className="pointer-events-none absolute bottom-3 right-3 sm:bottom-6 sm:right-6 h-12 w-12 sm:h-20 sm:w-20 print:bottom-4 print:right-4 print:h-12 print:w-12">
+            <div className="pointer-events-none absolute bottom-2.5 right-2.5 sm:bottom-5 sm:right-5 h-8 w-8 sm:h-16 sm:w-16 print:bottom-4 print:right-4 print:h-12 print:w-12">
               <div className="absolute bottom-0 right-0 h-full w-px bg-black/15" />
               <div className="absolute bottom-0 right-0 h-px w-full bg-black/15" />
-              <div className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3 h-1.5 w-1.5 sm:h-2 sm:w-2 border border-black/20 rotate-45 print:bottom-2 print:right-2 print:h-1.5 print:w-1.5" />
+              <div className="absolute bottom-1.5 right-1.5 sm:bottom-2.5 sm:right-2.5 h-1 w-1 sm:h-2 sm:w-2 border border-black/20 rotate-45" />
             </div>
 
             {/* =====================================================
-                CONTENT - FLEX COLUMN SPACE BETWEEN IN PRINT MODE
+                A4 FLEX CONTENT - PERFECT PROPORTIONAL SPACING
             ====================================================== */}
-            <div className="relative px-4 py-6 sm:px-12 sm:py-12 lg:px-16 lg:py-16 print:flex print:h-full print:flex-col print:justify-between print:px-10 print:py-8">
+            <div className="relative flex h-full flex-col justify-between px-3 py-4 sm:px-10 sm:py-8 lg:px-12 lg:py-10 print:px-10 print:py-8">
 
               {/* SECTION 1: TOP ORNAMENT & DATE HERO */}
               <div>
                 {/* Top Ornament */}
-                <div className="flex items-center justify-center gap-3 sm:gap-4 print:gap-3">
-                  <div className="h-px w-10 sm:w-24 print:w-16 bg-black/15" />
-                  <div className="relative flex h-7 w-7 sm:h-9 sm:w-9 items-center justify-center print:h-7 print:w-7">
+                <div className="flex items-center justify-center gap-2 sm:gap-4 print:gap-3">
+                  <div className="h-px w-8 sm:w-20 print:w-16 bg-black/15" />
+                  <div className="relative flex h-5 w-5 sm:h-8 sm:w-8 items-center justify-center print:h-7 print:w-7">
                     <div className="absolute inset-0 rotate-45 border border-black/15" />
                     <Sparkles
-                      size={12}
-                      className="relative text-black/55 sm:size-3.5 print:h-3 print:w-3"
+                      size={10}
+                      className="relative text-black/55 sm:size-3 print:h-3 print:w-3"
                       strokeWidth={1.5}
                     />
                   </div>
-                  <div className="h-px w-10 sm:w-24 print:w-16 bg-black/15" />
+                  <div className="h-px w-8 sm:w-20 print:w-16 bg-black/15" />
                 </div>
 
                 {/* Certificate Label */}
-                <div className="mt-4 sm:mt-6 text-center print:mt-2">
-                  <span className="inline-flex items-center rounded-full border border-black/10 bg-[#f4f1e8] px-3.5 py-1.5 sm:px-5 sm:py-2 text-[7.5px] sm:text-[8px] font-black uppercase tracking-[0.3em] sm:tracking-[0.38em] text-black/45 print:px-3.5 print:py-1 print:text-[7.5px]">
+                <div className="mt-2.5 sm:mt-4 text-center print:mt-2">
+                  <span className="inline-flex items-center rounded-full border border-black/10 bg-[#f4f1e8] px-3 py-1 sm:px-4 sm:py-1.5 text-[7px] sm:text-[8px] font-black uppercase tracking-[0.28em] sm:tracking-[0.38em] text-black/45">
                     Date Claim Certificate
                   </span>
                 </div>
 
                 {/* Date Hero */}
-                <div className="mt-5 sm:mt-8 text-center print:mt-3">
-                  <h1 className="text-[28px] xs:text-[34px] sm:text-[56px] lg:text-[68px] font-black leading-[0.95] tracking-[-0.05em] sm:tracking-[-0.065em] text-[#111] print:text-[46px]">
+                <div className="mt-3 sm:mt-6 text-center print:mt-3">
+                  <h1 className="text-[22px] xs:text-[28px] sm:text-[46px] lg:text-[56px] font-black leading-[0.95] tracking-[-0.05em] sm:tracking-[-0.065em] text-[#111]">
                     {formatDate(dateKey)}
                   </h1>
 
-                  <div className="mx-auto mt-4 sm:mt-6 flex max-w-[180px] sm:max-w-sm items-center justify-center gap-3 print:mt-2.5 print:max-w-xs">
+                  <div className="mx-auto mt-2.5 sm:mt-4 flex max-w-[140px] sm:max-w-xs items-center justify-center gap-2 sm:gap-3">
                     <div className="h-px flex-1 bg-black/[0.10]" />
-                    <span className="text-[8px] sm:text-[9px] text-black/30">✦</span>
+                    <span className="text-[7px] sm:text-[8px] text-black/30">✦</span>
                     <div className="h-px flex-1 bg-black/[0.10]" />
                   </div>
 
-                  <p className="mt-3 sm:mt-5 text-[7.5px] sm:text-[8px] font-black uppercase tracking-[0.3em] sm:tracking-[0.38em] text-black/30 print:mt-2 print:text-[7.5px]">
+                  <p className="mt-2 sm:mt-3 text-[7px] sm:text-[8px] font-black uppercase tracking-[0.25em] sm:tracking-[0.38em] text-black/30">
                     Active Digital Date Claim
                   </p>
 
-                  <p className="mt-0.5 sm:mt-1 text-[7px] sm:text-[8px] font-bold uppercase tracking-[0.2em] sm:tracking-[0.22em] text-black/20 print:text-[7px]">
+                  <p className="mt-0.5 text-[6.5px] sm:text-[7.5px] font-bold uppercase tracking-[0.18em] sm:tracking-[0.22em] text-black/20">
                     Own a Date Calendar
                   </p>
                 </div>
               </div>
 
               {/* SECTION 2: DEDICATION & AVATAR */}
-              <div className="mt-8 sm:mt-14 text-center print:mt-3">
-                <p className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.28em] sm:tracking-[0.34em] text-black/35 print:text-[7.5px]">
+              <div className="mt-3 sm:mt-6 text-center">
+                <p className="text-[7px] sm:text-[8.5px] font-bold uppercase tracking-[0.25em] sm:tracking-[0.34em] text-black/35">
                   This date claim is associated with
                 </p>
 
                 {/* Avatar */}
-                <div className="mt-5 sm:mt-9 print:mt-2.5">
+                <div className="mt-2.5 sm:mt-6 print:mt-2.5">
                   {certificate.imageUrl ? (
-                    <div className="relative mx-auto h-[80px] w-[80px] sm:h-[112px] sm:w-[112px] print:h-[76px] print:w-[76px]">
-                      <div className="absolute -inset-3 sm:-inset-4 rounded-full border border-black/[0.045] print:-inset-2" />
-                      <div className="absolute -inset-2 sm:-inset-2.5 rounded-full border border-black/10 print:-inset-1" />
+                    <div className="relative mx-auto h-[54px] w-[54px] sm:h-[90px] sm:w-[90px]">
+                      <div className="absolute -inset-2 sm:-inset-3 rounded-full border border-black/[0.045]" />
+                      <div className="absolute -inset-1.5 sm:-inset-2 rounded-full border border-black/10" />
 
-                      <div className="relative h-[80px] w-[80px] sm:h-[112px] sm:w-[112px] rounded-full bg-[#f5f1e7] p-[3px] sm:p-[5px] shadow-[0_8px_20px_rgba(0,0,0,0.1)] sm:shadow-[0_12px_35px_rgba(0,0,0,0.13)] print:h-[76px] print:w-[76px] print:p-[3px] print:shadow-none">
+                      <div className="relative h-[54px] w-[54px] sm:h-[90px] sm:w-[90px] rounded-full bg-[#f5f1e7] p-[2px] sm:p-[4px] shadow-[0_6px_16px_rgba(0,0,0,0.08)] sm:shadow-[0_10px_28px_rgba(0,0,0,0.12)]">
                         <img
                           src={certificate.imageUrl}
                           alt={certificate.name}
@@ -373,11 +375,11 @@ export function DateCertificatePage({
                       </div>
                     </div>
                   ) : (
-                    <div className="relative mx-auto h-[76px] w-[76px] sm:h-[100px] sm:w-[100px] print:h-[70px] print:w-[70px]">
-                      <div className="absolute -inset-3 sm:-inset-4 rounded-full border border-black/[0.045] print:-inset-2" />
-                      <div className="absolute -inset-2 sm:-inset-2.5 rounded-full border border-black/10 print:-inset-1" />
+                    <div className="relative mx-auto h-[52px] w-[52px] sm:h-[82px] sm:w-[82px]">
+                      <div className="absolute -inset-2 sm:-inset-3 rounded-full border border-black/[0.045]" />
+                      <div className="absolute -inset-1.5 sm:-inset-2 rounded-full border border-black/10" />
 
-                      <div className="relative flex h-[76px] w-[76px] sm:h-[100px] sm:w-[100px] items-center justify-center rounded-full bg-[#171717] text-2xl sm:text-3xl font-black text-white shadow-[0_8px_20px_rgba(0,0,0,0.15)] sm:shadow-[0_12px_35px_rgba(0,0,0,0.18)] print:h-[70px] print:w-[70px] print:text-xl print:shadow-none">
+                      <div className="relative flex h-[52px] w-[52px] sm:h-[82px] sm:w-[82px] items-center justify-center rounded-full bg-[#171717] text-xl sm:text-2xl font-black text-white shadow-[0_6px_16px_rgba(0,0,0,0.12)] sm:shadow-[0_10px_28px_rgba(0,0,0,0.16)]">
                         {certificate.initial}
                       </div>
                     </div>
@@ -385,62 +387,62 @@ export function DateCertificatePage({
                 </div>
 
                 {/* Name */}
-                <div className="mt-4 sm:mt-7 text-[26px] sm:text-[44px] lg:text-[48px] font-black tracking-[-0.045em] text-[#111] print:mt-2 print:text-[34px]">
+                <div className="mt-2 sm:mt-5 text-[20px] sm:text-[34px] lg:text-[40px] font-black tracking-[-0.045em] text-[#111]">
                   {certificate.name}
                 </div>
 
                 {certificate.isGift && certificate.senderName && (
-                  <div className="mt-3 sm:mt-5 inline-flex items-center gap-1.5 rounded-full border border-rose-200/70 bg-rose-50/70 px-3 py-1.5 sm:px-4 sm:py-2 text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.14em] text-rose-500 print:mt-2 print:px-3 print:py-1 print:text-[8px]">
-                    <Gift size={11} className="sm:size-3 print:h-3 print:w-3" />
+                  <div className="mt-2 sm:mt-3 inline-flex items-center gap-1.5 rounded-full border border-rose-200/70 bg-rose-50/70 px-2.5 py-1 sm:px-3.5 sm:py-1.5 text-[7px] sm:text-[8.5px] font-bold uppercase tracking-[0.14em] text-rose-500">
+                    <Gift size={10} className="sm:size-3" />
                     Dedicated with love by {certificate.senderName}
                   </div>
                 )}
               </div>
 
               {/* Central Ornament */}
-              <div className="mx-auto mt-6 sm:mt-12 flex max-w-xs sm:max-w-md items-center justify-center gap-4 sm:gap-5 print:mt-3 print:max-w-xs">
+              <div className="mx-auto mt-3 sm:mt-6 flex max-w-xs sm:max-w-md items-center justify-center gap-3 sm:gap-4">
                 <div className="h-px flex-1 bg-black/[0.08]" />
                 <div className="flex items-center gap-1">
                   <span className="h-1 w-1 rounded-full bg-black/25" />
-                  <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rotate-45 border border-black/20" />
+                  <span className="h-1.5 w-1.5 rotate-45 border border-black/20" />
                   <span className="h-1 w-1 rounded-full bg-black/25" />
                 </div>
                 <div className="h-px flex-1 bg-black/[0.08]" />
               </div>
 
               {/* SECTION 3: DEDICATION PLAQUE */}
-              <div className="mx-auto mt-6 sm:mt-10 max-w-2xl print:mt-3 print:w-full">
-                <div className="relative rounded-[20px] sm:rounded-[28px] border border-black/[0.09] bg-[#f5f2e9] px-5 py-6 sm:px-11 sm:py-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_8px_25px_rgba(0,0,0,0.035)] print:rounded-[18px] print:px-6 print:py-4 print:shadow-none">
+              <div className="mx-auto mt-3 sm:mt-6 w-full max-w-2xl">
+                <div className="relative rounded-[16px] sm:rounded-[24px] border border-black/[0.09] bg-[#f5f2e9] px-4 py-4 sm:px-8 sm:py-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_6px_20px_rgba(0,0,0,0.03)]">
                   {/* plaque inner border */}
-                  <div className="pointer-events-none absolute inset-2 sm:inset-2.5 rounded-[16px] sm:rounded-[22px] border border-black/[0.045] print:inset-1.5 print:rounded-[14px]" />
+                  <div className="pointer-events-none absolute inset-1.5 sm:inset-2 rounded-[12px] sm:rounded-[18px] border border-black/[0.045]" />
 
                   <div className="relative text-center">
-                    <div className="text-[7.5px] sm:text-[8px] font-black uppercase tracking-[0.3em] sm:tracking-[0.38em] text-black/25 print:text-[7px]">
+                    <div className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.28em] sm:tracking-[0.36em] text-black/25">
                       Personal Dedication
                     </div>
 
                     {/* Decorative quotation */}
-                    <div className="mt-3 sm:mt-5 text-3xl sm:text-4xl font-serif leading-none text-black/10 print:mt-1 print:text-2xl">
+                    <div className="mt-1 sm:mt-2 text-xl sm:text-3xl font-serif leading-none text-black/10">
                       “
                     </div>
 
-                    <div className="mx-auto -mt-1 sm:-mt-2 max-w-xl text-[15px] sm:text-[21px] font-black leading-snug sm:leading-relaxed tracking-[-0.02em] text-black print:mt-0 print:text-[15px] print:leading-snug">
+                    <div className="mx-auto -mt-1 max-w-xl text-[13px] sm:text-[18px] lg:text-[20px] font-black leading-snug tracking-[-0.02em] text-black">
                       {certificate.title}
                     </div>
 
-                    <div className="mx-auto mt-4 sm:mt-6 h-px w-8 sm:w-10 bg-black/15 print:mt-2 print:w-8" />
+                    <div className="mx-auto mt-2 sm:mt-4 h-px w-6 sm:w-10 bg-black/15" />
 
-                    <p className="mx-auto mt-4 sm:mt-6 max-w-xl text-[11px] leading-relaxed sm:text-[13px] sm:leading-7 text-black/55 print:mt-2 print:text-[10px] print:leading-relaxed">
+                    <p className="mx-auto mt-2 sm:mt-4 max-w-xl text-[9.5px] leading-relaxed sm:text-[12px] sm:leading-6 text-black/55">
                       {certificate.story}
                     </p>
 
                     {certificate.link && (
-                      <div className="mt-5 sm:mt-7 border-t border-black/[0.06] pt-4 sm:pt-5 print:mt-2 print:pt-2">
+                      <div className="mt-3 sm:mt-5 border-t border-black/[0.06] pt-2 sm:pt-3">
                         <a
                           href={certificate.link}
                           target="_blank"
                           rel="noreferrer"
-                          className="break-all text-[8px] sm:text-[9px] font-bold text-black/35 underline decoration-black/15 underline-offset-4 transition hover:text-black print:text-[8px]"
+                          className="break-all text-[7.5px] sm:text-[8.5px] font-bold text-black/35 underline decoration-black/15 underline-offset-4 transition hover:text-black"
                         >
                           {certificate.link}
                         </a>
@@ -451,73 +453,73 @@ export function DateCertificatePage({
               </div>
 
               {/* SECTION 4: AUTHENTICITY / REGISTRY FOOTER */}
-              <div className="mt-8 sm:mt-16 border-t border-black/[0.09] pt-6 sm:pt-9 print:mt-4 print:pt-3">
-                <div className="grid grid-cols-1 items-center gap-5 sm:grid-cols-[1fr_auto_1fr] sm:gap-9 print:grid-cols-[1fr_auto_1fr] print:gap-4 print:items-center">
+              <div className="mt-4 sm:mt-8 border-t border-black/[0.09] pt-3 sm:pt-6">
+                <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[1fr_auto_1fr] sm:gap-6">
                   {/* Certificate ID */}
-                  <div className="text-center sm:text-left print:text-left">
-                    <div className="text-[7px] font-black uppercase tracking-[0.35em] text-black/25 print:text-[6.5px]">
+                  <div className="text-center sm:text-left">
+                    <div className="text-[6.5px] sm:text-[7px] font-black uppercase tracking-[0.32em] text-black/25">
                       Certificate ID
                     </div>
-                    <div className="mt-1 sm:mt-2 font-mono text-[9.5px] sm:text-[10px] font-black tracking-[0.16em] text-black/65 print:mt-0.5 print:text-[9px]">
+                    <div className="mt-0.5 sm:mt-1 font-mono text-[8.5px] sm:text-[9.5px] font-black tracking-[0.14em] text-black/65">
                       {certificate.certificateId}
                     </div>
                   </div>
 
                   {/* Luxury Seal */}
                   <div className="flex flex-col items-center">
-                    <div className="relative flex h-[76px] w-[76px] sm:h-[94px] sm:w-[94px] items-center justify-center rounded-full border border-black/20 bg-[#f8f5ec] shadow-[0_6px_20px_rgba(0,0,0,0.06)] sm:shadow-[0_8px_25px_rgba(0,0,0,0.07)] print:h-[64px] print:w-[64px] print:shadow-none">
+                    <div className="relative flex h-[58px] w-[58px] sm:h-[76px] sm:w-[76px] items-center justify-center rounded-full border border-black/20 bg-[#f8f5ec] shadow-[0_4px_16px_rgba(0,0,0,0.05)]">
                       {/* outer ring */}
-                      <div className="absolute -inset-1 sm:-inset-1.5 rounded-full border border-black/[0.06] print:-inset-1" />
+                      <div className="absolute -inset-1 rounded-full border border-black/[0.06]" />
                       {/* inner ring */}
-                      <div className="absolute inset-1.5 sm:inset-2 rounded-full border border-dashed border-black/20 print:inset-1" />
+                      <div className="absolute inset-1 sm:inset-1.5 rounded-full border border-dashed border-black/20" />
 
                       {/* seal content */}
                       <div className="relative text-center">
-                        <div className="text-[5.5px] sm:text-[6px] font-black uppercase tracking-[0.22em] text-black/35 print:text-[5px]">
+                        <div className="text-[5px] sm:text-[5.5px] font-black uppercase tracking-[0.2em] text-black/35">
                           Own a Date
                         </div>
-                        <div className="mt-0.5 sm:mt-1 text-[9.5px] sm:text-[11px] font-black uppercase tracking-[0.16em] text-black/75 print:mt-0.5 print:text-[8.5px]">
+                        <div className="mt-0.5 text-[8px] sm:text-[9.5px] font-black uppercase tracking-[0.14em] text-black/75">
                           Verified
                         </div>
-                        <div className="mx-auto my-0.5 sm:my-1 h-1 sm:h-1.5 w-1 sm:w-1.5 rotate-45 bg-black/60 print:my-0.5 print:h-1 print:w-1" />
-                        <div className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.22em] text-black/45 print:text-[6.5px]">
+                        <div className="mx-auto my-0.5 h-1 w-1 rotate-45 bg-black/60" />
+                        <div className="text-[6px] sm:text-[7px] font-black uppercase tracking-[0.2em] text-black/45">
                           Claim
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-2 sm:mt-3 text-[5.5px] sm:text-[6px] font-bold uppercase tracking-[0.28em] sm:tracking-[0.32em] text-black/20 print:mt-1 print:text-[5.5px]">
+                    <div className="mt-1 sm:mt-2 text-[5px] sm:text-[5.5px] font-bold uppercase tracking-[0.26em] text-black/20">
                       Digital Record • Verified Claim
                     </div>
                   </div>
 
                   {/* Registration date */}
-                  <div className="text-center sm:text-right print:text-right">
-                    <div className="text-[7px] font-black uppercase tracking-[0.35em] text-black/25 print:text-[6.5px]">
+                  <div className="text-center sm:text-right">
+                    <div className="text-[6.5px] sm:text-[7px] font-black uppercase tracking-[0.32em] text-black/25">
                       Date Claimed
                     </div>
-                    <div className="mt-1 sm:mt-2 text-[9.5px] sm:text-[10px] font-bold text-black/65 print:mt-0.5 print:text-[9px]">
+                    <div className="mt-0.5 sm:mt-1 text-[8.5px] sm:text-[9.5px] font-bold text-black/65">
                       {certificate.claimedAt}
                     </div>
                   </div>
                 </div>
 
                 {/* Explicit Legal Disclaimer */}
-                <div className="mt-5 sm:mt-8 border-t border-black/[0.06] pt-4 sm:pt-6 text-center text-[8px] sm:text-[9px] font-medium leading-relaxed text-black/40 print:mt-2 print:pt-2 print:text-[7.5px] print:leading-tight">
+                <div className="mt-3 sm:mt-5 border-t border-black/[0.06] pt-2 sm:pt-4 text-center text-[7px] sm:text-[8px] font-medium leading-relaxed text-black/40">
                   This certificate is a record of your claim on the Own A Date platform. It does not represent legal ownership of the date itself or any property, intellectual property, or other legal right.
                 </div>
 
                 {/* Final Brand Mark */}
-                <div className="mt-5 sm:mt-8 flex items-center justify-center gap-3 sm:gap-4 print:mt-2">
-                  <div className="h-px w-10 sm:w-14 bg-black/[0.07] print:w-10" />
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="text-[7px] sm:text-[8px] text-black/20 print:text-[7px]">✦</span>
-                    <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-[0.35em] sm:tracking-[0.4em] text-black/20 print:text-[7px]">
+                <div className="mt-3 sm:mt-5 flex items-center justify-center gap-3">
+                  <div className="h-px w-8 sm:w-12 bg-black/[0.07]" />
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[6.5px] sm:text-[7px] text-black/20">✦</span>
+                    <span className="text-[6.5px] sm:text-[7px] font-black uppercase tracking-[0.35em] text-black/20">
                       Own a Date
                     </span>
-                    <span className="text-[7px] sm:text-[8px] text-black/20 print:text-[7px]">✦</span>
+                    <span className="text-[6.5px] sm:text-[7px] text-black/20">✦</span>
                   </div>
-                  <div className="h-px w-10 sm:w-14 bg-black/[0.07] print:w-10" />
+                  <div className="h-px w-8 sm:w-12 bg-black/[0.07]" />
                 </div>
               </div>
 
