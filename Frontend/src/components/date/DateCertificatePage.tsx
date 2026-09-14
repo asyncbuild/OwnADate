@@ -246,7 +246,7 @@ export function DateCertificatePage({
             className="flex items-center gap-1.5 rounded-full bg-[#151515] px-3.5 py-2 sm:px-4 sm:py-2.5 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-black/80 hover:shadow-xl disabled:opacity-50 cursor-pointer"
           >
             <Download size={14} className={downloading ? "animate-bounce" : ""} />
-            <span>{downloading ? "Downloading..." : "Download A4 Certificate"}</span>
+            <span>{downloading ? "Downloading..." : "Download Certificate"}</span>
           </button>
         </div>
       </div>
