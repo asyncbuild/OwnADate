@@ -19,23 +19,28 @@ export function AboutRulesPage({
   }, [initialTab]);
 
   return (
-    <div className="min-h-screen bg-[#f7f7f5] text-[#151515] px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f7f7f5] text-[#151515] px-3 py-5 sm:px-6 sm:py-8 lg:px-8">
       {/* Top Header & Navigation Bar */}
-      <div className="mx-auto flex max-w-4xl items-center justify-between">
+      <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-xs font-bold transition hover:bg-black hover:text-white"
+          className="group flex shrink-0 items-center gap-1.5 rounded-full border border-black/10 bg-white px-3.5 py-2 sm:px-4 sm:py-2.5 text-xs font-bold whitespace-nowrap shadow-sm backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-black hover:bg-black hover:text-white hover:shadow-md"
         >
-          <ArrowLeft size={14} /> Back to Calendar
+          <ArrowLeft
+            size={14}
+            className="transition-transform duration-200 group-hover:-translate-x-0.5"
+          />
+          <span className="hidden sm:inline">Back to Calendar</span>
+          <span className="sm:hidden">Back</span>
         </button>
 
-        <div className="flex items-center gap-2 rounded-full border border-black/10 bg-white p-1 shadow-sm">
+        <div className="flex shrink-0 items-center gap-1 rounded-full border border-black/10 bg-white p-1 shadow-sm">
           <button
             type="button"
             onClick={() => setActiveTab("about")}
-            className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
+            className={`rounded-full px-3 py-1.5 sm:px-4 text-xs font-bold whitespace-nowrap transition-all duration-200 ${
               activeTab === "about"
-                ? "bg-black text-white"
+                ? "bg-black text-white shadow-sm"
                 : "text-black/55 hover:text-black"
             }`}
           >
@@ -44,9 +49,9 @@ export function AboutRulesPage({
           <button
             type="button"
             onClick={() => setActiveTab("rules")}
-            className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
+            className={`rounded-full px-3 py-1.5 sm:px-4 text-xs font-bold whitespace-nowrap transition-all duration-200 ${
               activeTab === "rules"
-                ? "bg-black text-white"
+                ? "bg-black text-white shadow-sm"
                 : "text-black/55 hover:text-black"
             }`}
           >
@@ -56,7 +61,7 @@ export function AboutRulesPage({
       </div>
 
       {/* Main Dedicated Page Container */}
-      <main className="mx-auto mt-8 max-w-4xl">
+      <main className="mx-auto mt-5 sm:mt-8 max-w-4xl">
         <div className="rounded-[32px] border border-black/10 bg-white p-6 shadow-xl sm:p-12">
           {/* Header */}
           <div className="text-center">

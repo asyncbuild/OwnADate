@@ -102,22 +102,30 @@ a {
   animation-play-state: paused;
 }
 
-/* Dedicated Print Styles - Fits Certificate on 1 Single Page Perfectly */
+/* Dedicated Print Styles - Fits Certificate on 1 Single Page Perfectly across Desktop & Mobile */
 @media print {
   @page {
-    size: A4 portrait;
-    margin: 4mm;
+    size: portrait;
+    margin: 0;
+  }
+
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-sizing: border-box !important;
   }
 
   html,
-  body {
-    height: 100vh !important;
+  body,
+  #root {
+    width: 100% !important;
+    height: 100% !important;
     max-height: 100vh !important;
     background: #ffffff !important;
     padding: 0 !important;
     margin: 0 !important;
     overflow: hidden !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
   }
 }
