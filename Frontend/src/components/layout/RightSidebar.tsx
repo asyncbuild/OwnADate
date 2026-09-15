@@ -37,9 +37,9 @@ export function RightSidebar({
             action: act.action === "gifted" ? "gifted" : "claimed",
             date: act.dateLabel || "Recently",
             title: act.title || "Claimed a special date",
-            price: act.price || 499,
+            price: act.price || 249,
             time: "Just now",
-            icon: act.action === "gifted" ? Gift : act.price > 499 ? Trophy : Flame,
+            icon: act.action === "gifted" ? Gift : act.price > 249 ? Trophy : Flame,
             currency: act.currency || currency,
           }));
           setActivitiesList(mapped);
@@ -86,7 +86,7 @@ export function RightSidebar({
           action: (act?.action || (clm?.isGift ? "gifted" : "claimed")) as "claimed" | "gifted",
           date: act?.dateLabel || "Just now",
           title: act?.title || clm?.title || "Claimed a date",
-          price: act?.price || clm?.price || 499,
+          price: act?.price || clm?.price || 249,
           time: "Just now",
           icon: (act?.action === "gifted" || clm?.isGift) ? Gift : Flame,
           currency: act?.currency || clm?.currency || currency,
@@ -146,7 +146,7 @@ export function RightSidebar({
           DESKTOP (xl:): CONTINUOUS UPWARD FLOATING LIVE FEED
       ========================================================== */}
       <div className="hidden xl:flex xl:flex-col flex-1 min-h-0 border-t border-black/[0.06] pt-4">
-        <div className="flex items-center justify-between mb-3 px-0.5">
+        <div className="flex items-center justify-between mb-3 px-0.5 shrink-0">
           <div className="flex items-center gap-1.5">
             <Calendar size={12} className="text-black/40" />
             <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-black/40">
@@ -157,31 +157,33 @@ export function RightSidebar({
         </div>
 
         {/* Upward Floating Feed with Fade Mask */}
-        <div className="relative h-[480px] overflow-hidden">
-          {/* Top & Bottom Gradient Vignette */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b from-white via-white/80 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t from-white via-white/80 to-transparent" />
+        <div className="relative flex-1 min-h-[200px] w-full overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Top & Bottom Gradient Vignette */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b from-white via-white/80 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t from-white via-white/80 to-transparent" />
 
-          {/* Marquee Track */}
-          <div className="animate-marquee-vertical-fast space-y-1.5 py-1">
-            {activitiesList.length > 0 ? (
-              [...activitiesList, ...activitiesList].map((activity, idx) => (
-                <ActivityItem
-                  key={`desk-${activity.id}-${idx}`}
-                  activity={activity}
-                  currency={currency}
-                  onClick={() => {
-                    if (activity.dateKey) {
-                      onSelectDateKey?.(activity.dateKey);
-                    }
-                  }}
-                />
-              ))
-            ) : (
-              <div className="p-4 text-center text-[11px] font-medium text-black/40">
-                No recent activity yet.
-              </div>
-            )}
+            {/* Marquee Track */}
+            <div className="animate-marquee-vertical-fast space-y-1.5 py-1">
+              {activitiesList.length > 0 ? (
+                [...activitiesList, ...activitiesList].map((activity, idx) => (
+                  <ActivityItem
+                    key={`desk-${activity.id}-${idx}`}
+                    activity={activity}
+                    currency={currency}
+                    onClick={() => {
+                      if (activity.dateKey) {
+                        onSelectDateKey?.(activity.dateKey);
+                      }
+                    }}
+                  />
+                ))
+              ) : (
+                <div className="p-4 text-center text-[11px] font-medium text-black/40">
+                  No recent activity yet.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -28,7 +28,7 @@ export function DateTooltip({
   const isINR = currency === "INR";
   const price = isINR
     ? cell.isPremium ? PREMIUM_PRICE : STANDARD_PRICE
-    : cell.isPremium ? 14.99 : 8.99;
+    : cell.isPremium ? 8.99 : 4.99;
   const symbol = isINR ? "₹" : "$";
 
   return (

@@ -93,8 +93,8 @@ const transporter = nodemailer.createTransport({
   },
 } as any);
 const PRICES = {
-    INR: { STANDARD: 49900, PREMIUM: 99900 },
-    USD: { STANDARD: 899, PREMIUM: 1499 },
+    INR: { STANDARD: 24900, PREMIUM: 69900 },
+    USD: { STANDARD: 499, PREMIUM: 899 },
 }
 
 const OrderInputSchema = z.object({

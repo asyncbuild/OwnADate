@@ -94,8 +94,8 @@ export function LeftSidebar({ claimedCount }: LeftSidebarProps) {
       {/* =========================================================
           DESKTOP (xl:): CONTINUOUS UPWARD FLOATING MARKETING TICKER
       ========================================================== */}
-      <div className="hidden xl:flex xl:flex-col mt-5 pt-4 border-t border-black/[0.06]">
-        <div className="flex items-center justify-between mb-3 px-1">
+      <div className="hidden xl:flex xl:flex-col flex-1 min-h-0 mt-5 pt-4 border-t border-black/[0.06]">
+        <div className="flex items-center justify-between mb-3 px-1 shrink-0">
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-black/40">
             ✦ Story & Marketing Ideas
           </span>
@@ -103,29 +103,31 @@ export function LeftSidebar({ claimedCount }: LeftSidebarProps) {
         </div>
 
         {/* Upward Floating Feed with Top & Bottom Fade Mask */}
-        <div className="relative h-[720px] overflow-hidden">
-          {/* Top & Bottom Gradient Vignette/Fade directly on white background */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-10 bg-gradient-to-b from-white via-white/85 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-white via-white/85 to-transparent" />
+        <div className="relative flex-1 min-h-[200px] w-full overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden">
+            {/* Top & Bottom Gradient Vignette/Fade directly on white background */}
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-10 bg-gradient-to-b from-white via-white/85 to-transparent" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-10 bg-gradient-to-t from-white via-white/85 to-transparent" />
 
-          {/* Marquee Vertical Track */}
-          <div className="animate-marquee-vertical-slow space-y-2 py-1 px-1">
-            {[...MARKETING_HOOKS, ...MARKETING_HOOKS].map((hook, index) => (
-              <div
-                key={`${hook.id}-${index}`}
-                className="group/card rounded-xl border border-black/[0.06] bg-[#fafaf7] p-3.5 transition-all duration-200 hover:bg-white hover:border-black/15 hover:shadow-sm cursor-pointer"
-                onClick={scrollToCalendar}
-              >
-                <p className="text-[11.5px] leading-relaxed font-semibold text-black/80">
-                  "{hook.text}"
-                </p>
-                <div className="mt-2 flex items-center justify-end">
-                  <span className="text-[9px] font-bold text-black/40 group-hover/card:text-black transition-colors">
-                    Claim Date →
-                  </span>
+            {/* Marquee Vertical Track */}
+            <div className="animate-marquee-vertical-slow space-y-2 py-1 px-1">
+              {[...MARKETING_HOOKS, ...MARKETING_HOOKS].map((hook, index) => (
+                <div
+                  key={`${hook.id}-${index}`}
+                  className="group/card rounded-xl border border-black/[0.06] bg-[#fafaf7] p-3.5 transition-all duration-200 hover:bg-white hover:border-black/15 hover:shadow-sm cursor-pointer"
+                  onClick={scrollToCalendar}
+                >
+                  <p className="text-[11.5px] leading-relaxed font-semibold text-black/80">
+                    "{hook.text}"
+                  </p>
+                  <div className="mt-2 flex items-center justify-end">
+                    <span className="text-[9px] font-bold text-black/40 group-hover/card:text-black transition-colors">
+                      Claim Date →
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

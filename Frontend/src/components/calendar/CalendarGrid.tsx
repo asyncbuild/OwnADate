@@ -5,6 +5,7 @@ import MonthCard from "./MonthCard";
 
 interface CalendarGridProps {
   ownedDates?: Record<string, DateOwner>;
+  premiumDateKeys?: Set<string>;
   currency?: "INR" | "USD";
   hoveredDate: string | null;
   setHoveredDate: (value: string | null) => void;
@@ -14,6 +15,7 @@ interface CalendarGridProps {
 
 export function CalendarGrid({
   ownedDates = {},
+  premiumDateKeys,
   currency = "INR",
   hoveredDate,
   setHoveredDate,
@@ -56,7 +58,7 @@ export function CalendarGrid({
       {/* 12 Month Calendar */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {MONTHS.map((month, monthIndex) => {
-          const cells = getDaysInMonth(monthIndex, CALENDAR_YEAR, ownedDates);
+          const cells = getDaysInMonth(monthIndex, CALENDAR_YEAR, ownedDates, premiumDateKeys);
 
           return (
             <MonthCard

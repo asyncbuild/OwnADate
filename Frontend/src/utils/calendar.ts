@@ -4,7 +4,8 @@ import { PREMIUM_DATE_KEYS } from "../constants/calendar";
 export function getDaysInMonth(
   month: number,
   year: number,
-  ownedDates: Record<string, DateOwner> = {}
+  ownedDates: Record<string, DateOwner> = {},
+  premiumDateKeys?: Set<string>
 ): DateCell[] {
   const firstDay = new Date(year, month, 1);
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -18,6 +19,8 @@ export function getDaysInMonth(
     });
   }
 
+  const activePremiumKeys = premiumDateKeys || PREMIUM_DATE_KEYS;
+
   for (let day = 1; day <= daysInMonth; day++) {
     const dateKey = `${year}-${String(month + 1).padStart(2, "0")}-${String(
       day
@@ -26,7 +29,7 @@ export function getDaysInMonth(
     cells.push({
       day,
       dateKey,
-      isPremium: PREMIUM_DATE_KEYS.has(dateKey),
+      isPremium: activePremiumKeys.has(dateKey),
       owner: ownedDates[dateKey],
     });
   }

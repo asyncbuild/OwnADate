@@ -3,15 +3,37 @@ import { Flame, Trophy, Gift } from "lucide-react";
 
 export const CALENDAR_YEAR = 2026;
 
-export const STANDARD_PRICE = 499;  // ₹499 for standard dates
-export const PREMIUM_PRICE = 999;   // ₹999 for Valentine's, NYE, etc.
+export const STANDARD_PRICE = 249;  // ₹249 for standard dates
+export const PREMIUM_PRICE = 699;   // ₹699 for Valentine's, NYE, etc.
 
 export const PREMIUM_DATE_KEYS = new Set([
+  // New Year & Winter Season
   "2026-01-01", // New Year's Day
-  "2026-02-14", // Valentine's Day
-  "2026-10-31", // Halloween
-  "2026-12-25", // Christmas
+  "2026-12-24", // Christmas Eve
+  "2026-12-25", // Christmas Day
+  "2026-12-30", // Eve of New Year's Eve
   "2026-12-31", // New Year's Eve
+
+  // Romance Season
+  "2026-02-13", // Valentine's Eve
+  "2026-02-14", // Valentine's Day
+  "2026-02-15", // Singles Awareness
+
+  // Symmetry & Lucky Numbers
+  "2026-02-02", // 02/02
+  "2026-03-03", // 03/03
+  "2026-06-06", // 06/06
+  "2026-07-07", // 07/07
+  "2026-11-11", // 11/11
+  "2026-12-12", // 12/12
+
+  // Pop-Culture & Global Events
+  "2026-03-14", // Pi Day
+  "2026-04-01", // April Fools'
+  "2026-05-04", // Star Wars Day
+  "2026-07-04", // 4th of July
+  "2026-08-15", // Independence Day
+  "2026-10-31", // Halloween
 ]);
 
 export const MONTHS = [
@@ -137,7 +159,7 @@ export const INITIAL_OWNED_DATES: Record<string, DateOwner> = {
     isGift: true,
     title: "Our first Valentine's Day ❤️",
     story: "To the most special person in my life. You make every ordinary day magical.",
-    price: 999,
+    price: 699,
     category: "Love",
     link: "https://instagram.com",
     certificateId: "CERT-FEB14-001",
@@ -148,7 +170,7 @@ export const INITIAL_OWNED_DATES: Record<string, DateOwner> = {
     initial: "S",
     title: "A day worth remembering ⏳",
     story: "Claimed this special date as a reminder to make rare moments count.",
-    price: 999,
+    price: 699,
     category: "Special",
     link: "https://example.com",
     certificateId: "CERT-FEB28-002",
@@ -161,7 +183,7 @@ export const INITIAL_OWNED_DATES: Record<string, DateOwner> = {
     isGift: true,
     title: "Graduation Day 🎓",
     story: "So proud of your dedication and persistence. The world is yours.",
-    price: 499,
+    price: 249,
     category: "Milestone",
     certificateId: "CERT-MAY18-003",
     claimedAt: "May 18, 2026",
@@ -178,7 +200,7 @@ export const INITIAL_ACTIVITIES: Activity[] = [
     action: "gifted",
     date: "February 14",
     title: "Gifted to Priya ❤️",
-    price: 999,
+    price: 699,
     time: "2 mins ago",
     icon: Gift,
   },
@@ -189,7 +211,7 @@ export const INITIAL_ACTIVITIES: Activity[] = [
     action: "claimed",
     date: "February 29",
     title: "A day that only comes every 4 years",
-    price: 999,
+    price: 699,
     time: "10 mins ago",
     icon: Flame,
   },
@@ -200,7 +222,7 @@ export const INITIAL_ACTIVITIES: Activity[] = [
     action: "gifted",
     date: "May 18",
     title: "Graduation Day 🎓",
-    price: 499,
+    price: 249,
     time: "1 hour ago",
     icon: Trophy,
   },

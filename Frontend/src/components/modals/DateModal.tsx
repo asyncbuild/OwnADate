@@ -70,7 +70,7 @@ export function DateModal({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [currency, setCurrency] = useState<"INR" | "USD">(initialCurrency || "INR");
   const [submitting, setSubmitting] = useState(false);
-  const displayPrice = currency === "INR" ? price : date.isPremium ? 14.99 : 8.99;
+  const displayPrice = currency === "INR" ? price : date.isPremium ? 8.99 : 4.99;
 
   // OTP Verification States
   const [otp, setOtp] = useState("");

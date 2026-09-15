@@ -10,10 +10,11 @@ import { DateModal } from "./components/modals/DateModal";
 import { DateCertificatePage } from "./components/date/DateCertificatePage";
 import { AboutRulesPage } from "./components/pages/AboutRulesPage";
 import { apiUrl } from "./config/api";
-import { getDetectedCurrency } from "./utils/currency";
+import { getDetectedCurrency, setManualCurrency } from "./utils/currency";
 
 export default function App() {
   const [ownedDates, setOwnedDates] = useState<Record<string, DateOwner>>(INITIAL_OWNED_DATES);
+  const [premiumDateKeys, setPremiumDateKeys] = useState<Set<string>>(PREMIUM_DATE_KEYS);
   const [activities] = useState(INITIAL_ACTIVITIES);
   const [selectedDate, setSelectedDate] = useState<DateCell | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
@@ -43,9 +44,12 @@ export default function App() {
       try {
         const res = await fetch(apiUrl("/api/dates"));
         if (!res.ok) throw new Error("Unable to load dates");
-        const data: { ownedDates?: Record<string, DateOwner> } = await res.json();
+        const data: { ownedDates?: Record<string, DateOwner>; premiumDates?: string[] } = await res.json();
         if (data.ownedDates && isMounted) {
           setOwnedDates(data.ownedDates);
+        }
+        if (data.premiumDates && Array.isArray(data.premiumDates) && isMounted) {
+          setPremiumDateKeys(new Set(data.premiumDates));
         }
         if (isMounted) {
           setInitialLoading(false);
@@ -190,6 +194,11 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-[#151515]">
       <Header
+        currency={currency}
+        onCurrencyChange={(newCurr) => {
+          setCurrency(newCurr);
+          setManualCurrency(newCurr);
+        }}
         onOpenAbout={() => setActivePage("about")}
         onOpenRules={() => setActivePage("rules")}
       />
@@ -200,6 +209,7 @@ export default function App() {
 
           <CalendarGrid
             ownedDates={ownedDates}
+            premiumDateKeys={premiumDateKeys}
             currency={currency}
             hoveredDate={hoveredDate}
             setHoveredDate={setHoveredDate}
@@ -216,7 +226,7 @@ export default function App() {
                 setSelectedDate({
                   day,
                   dateKey,
-                  isPremium: PREMIUM_DATE_KEYS.has(dateKey),
+                  isPremium: premiumDateKeys.has(dateKey),
                   owner: ownedDates[dateKey],
                 });
               }
