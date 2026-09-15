@@ -120,11 +120,10 @@ export function LeftSidebar({ claimedCount, onOpenAbout, onOpenRules }: LeftSide
           DESKTOP (xl:): CONTINUOUS UPWARD FLOATING MARKETING TICKER
       ========================================================== */}
       <div className="hidden xl:flex xl:flex-col flex-1 min-h-0 mt-5 pt-4 border-t border-black/[0.06]">
-        <div className="flex items-center justify-between mb-3 px-1 shrink-0">
+        <div className="mb-3 px-1 shrink-0">
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-black/40">
-            ✦ Story & Marketing Ideas
+            ✦ Why Claim a Date?
           </span>
-          <span className="text-[9px] font-bold text-black/30">Hover to pause</span>
         </div>
 
         {/* Upward Floating Feed with Top & Bottom Fade Mask */}
@@ -162,7 +161,7 @@ export function LeftSidebar({ claimedCount, onOpenAbout, onOpenRules }: LeftSide
       ========================================================== */}
       <div className="xl:hidden mt-6 pt-4 border-t border-black/[0.06]">
         <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-black/40 px-1">
-          ✦ Story Ideas
+          ✦ Why Claim a Date?
         </div>
 
         <div className="relative overflow-hidden py-2">

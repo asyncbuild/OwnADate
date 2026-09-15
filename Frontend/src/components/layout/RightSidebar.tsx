@@ -146,14 +146,13 @@ export function RightSidebar({
           DESKTOP (xl:): CONTINUOUS UPWARD FLOATING LIVE FEED
       ========================================================== */}
       <div className="hidden xl:flex xl:flex-col flex-1 min-h-0 border-t border-black/[0.06] pt-4">
-        <div className="flex items-center justify-between mb-3 px-0.5 shrink-0">
+        <div className="mb-3 px-0.5 shrink-0">
           <div className="flex items-center gap-1.5">
             <Calendar size={12} className="text-black/40" />
             <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-black/40">
               Recent Claims
             </span>
           </div>
-          <span className="text-[9px] font-bold text-black/30">Hover to pause</span>
         </div>
 
         {/* Upward Floating Feed with Fade Mask */}
@@ -192,14 +191,13 @@ export function RightSidebar({
           MOBILE & TABLET (<xl): SIDE-BY-SIDE HORIZONTAL MARQUEE
       ========================================================== */}
       <div className="xl:hidden border-t border-black/[0.06] pt-4">
-        <div className="flex items-center justify-between mb-2 px-1">
+        <div className="mb-2 px-1">
           <div className="flex items-center gap-1.5">
             <Calendar size={12} className="text-black/40" />
             <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-black/40">
               Recent Claims
             </span>
           </div>
-          <span className="text-[9px] font-bold text-black/30">Hover to pause</span>
         </div>
 
         <div className="relative overflow-hidden py-2">
