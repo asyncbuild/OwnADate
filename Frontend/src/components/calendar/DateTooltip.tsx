@@ -54,10 +54,12 @@ export function DateTooltip({
               </>
             ) : cell.isPremium ? (
               <span className="flex items-center gap-0.5 font-bold text-amber-600">
-                <Sparkles size={8} /> Premium Date
+                <Sparkles size={8} /> High-Demand Premium Date
               </span>
             ) : (
-              "Available to claim"
+              <span className="flex items-center gap-0.5 font-bold text-emerald-600">
+                ⚡ 1 of 1 Claim Available
+              </span>
             )}
           </div>
         </div>

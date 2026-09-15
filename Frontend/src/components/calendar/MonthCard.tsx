@@ -6,6 +6,7 @@ import { Gift, Sparkles } from "lucide-react";
 interface MonthCardProps {
   month: string;
   cells: DateCell[];
+  selectedCategory?: string | null;
   currency?: "INR" | "USD";
   hoveredDate: string | null;
   setHoveredDate: (value: string | null) => void;
@@ -15,6 +16,7 @@ interface MonthCardProps {
 export function MonthCard({
   month,
   cells,
+  selectedCategory,
   currency = "INR",
   hoveredDate,
   setHoveredDate,
@@ -54,6 +56,11 @@ export function MonthCard({
             : null;
           const colIndex = cellIndex % 7;
 
+          const matchesCategoryFilter = selectedCategory
+            ? cell.owner?.category === selectedCategory
+            : false;
+          const isDimmedByFilter = selectedCategory ? !matchesCategoryFilter : false;
+
           return (
             <div key={cell.dateKey} className="relative">
               <button
@@ -63,7 +70,10 @@ export function MonthCard({
                 className={`
                   relative flex aspect-square w-full flex-col
                   items-center justify-center rounded-lg border
-                  text-[9px] font-semibold transition-all duration-150
+                  text-[9px] font-semibold transition-all duration-200
+
+                  ${isDimmedByFilter ? "opacity-25 hover:opacity-100 scale-95" : ""}
+                  ${matchesCategoryFilter ? "ring-2 ring-black font-black scale-105 shadow-md z-20" : ""}
 
                   ${
                     isOwned && theme

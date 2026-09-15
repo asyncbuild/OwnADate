@@ -142,7 +142,7 @@ export function AboutRulesPage({
               </h1>
 
               <p className="mt-3 text-xs font-bold uppercase tracking-[0.16em] text-black/40">
-                Digital Date Claims • 365 Days in 2026
+                Digital Date Claims • 365 Days
               </p>
             </div>
 
@@ -155,7 +155,7 @@ export function AboutRulesPage({
                     Every day belongs to someone.
                   </h2>
                   <p className="mt-4 text-sm leading-relaxed text-black/70 sm:text-base">
-                    There are 365 days in the 2026 calendar. A single date can mark the day two people crossed paths, the start of an ambitious dream, a birthday that changed everything, or a quiet memory you never want to forget.
+                    There are 365 days in the calendar. A single date can mark the day two people crossed paths, the start of an ambitious dream, a birthday that changed everything, or a quiet memory you never want to forget.
                   </p>
                   <p className="mt-3 text-sm leading-relaxed text-black/70 sm:text-base">
                     <strong className="text-black">Own a Date</strong> is a platform for creating digital claims associated with calendar dates. Add your name, title, story, and optional link, and share your moment with the world.
@@ -239,6 +239,9 @@ export function AboutRulesPage({
                   <p className="text-xs sm:text-sm leading-relaxed text-black/70">
                     A date claim is a digital feature provided within the Own A Date platform. Purchasing a claim does not grant legal ownership of the calendar date itself, property rights, trademark rights, exclusivity outside the Own A Date platform, or any other legal ownership over the underlying date.
                   </p>
+                  <p className="text-xs leading-relaxed text-black/55 italic">
+                    Note: The platform maps all 365 annual calendar dates using the 2026 calendar structure baseline, providing permanent digital claims for every day of the year.
+                  </p>
                 </div>
 
                 {/* Section 2: Takeover System */}
@@ -299,7 +302,7 @@ export function AboutRulesPage({
             <div>
               <div className="text-base font-black">Ready to claim your date?</div>
               <div className="text-xs text-white/60">
-                Explore available dates on the 365-day 2026 calendar.
+                Explore available dates on the 365-day calendar.
               </div>
             </div>
             <button

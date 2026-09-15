@@ -35,6 +35,33 @@ export function DateCertificatePage({
     new URLSearchParams(window.location.search).get("claimed") === "success";
 
   useEffect(() => {
+    if (isJustClaimed) {
+      import("canvas-confetti").then((confettiModule) => {
+        const confetti = confettiModule.default;
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.5 },
+        });
+        setTimeout(() => {
+          confetti({
+            particleCount: 60,
+            angle: 60,
+            spread: 60,
+            origin: { x: 0.1, y: 0.6 },
+          });
+          confetti({
+            particleCount: 60,
+            angle: 120,
+            spread: 60,
+            origin: { x: 0.9, y: 0.6 },
+          });
+        }, 350);
+      });
+    }
+  }, [isJustClaimed]);
+
+  useEffect(() => {
     const handleResize = () => {
       if (scaleContainerRef.current) {
         const availableWidth = scaleContainerRef.current.clientWidth;
@@ -361,23 +388,33 @@ export function DateCertificatePage({
         </div>
 
         {/* Right Row: Share & Download Buttons */}
-        <div className="flex items-center gap-2.5 justify-between sm:justify-end w-full sm:w-auto">
+        <div className="flex items-center gap-2 justify-between sm:justify-end w-full sm:w-auto flex-wrap">
+          {/* WhatsApp Direct Share Button */}
+          <a
+            href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${certificate.name}'s claimed date: "${certificate.title}" on Own a Date! ✨ ${window.location.origin}/date/${dateKey}`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-500/20 shadow-xs cursor-pointer"
+          >
+            <span>💬 WhatsApp</span>
+          </a>
+
           <button
             onClick={handleShare}
-            className="flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-4 py-2 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:border-black hover:shadow-lg"
+            className="flex items-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-3.5 py-2 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:border-black hover:shadow-md cursor-pointer"
           >
             {copied ? (
               <Check size={14} className="text-emerald-500" />
             ) : (
               <Share2 size={14} />
             )}
-            <span>{copied ? "Copied!" : "Share"}</span>
+            <span>{copied ? "Link Copied!" : "Copy Link"}</span>
           </button>
 
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="flex flex-1 sm:flex-initial items-center justify-center gap-1.5 rounded-full bg-[#151515] px-4 py-2 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:bg-black/80 hover:shadow-xl disabled:opacity-50 cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-1.5 rounded-full bg-[#151515] px-4 py-2 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:bg-black/80 hover:shadow-xl disabled:opacity-50 cursor-pointer whitespace-nowrap"
           >
             <Download size={14} className={downloading ? "animate-bounce" : ""} />
             <span>{downloading ? "Downloading..." : "Download Certificate"}</span>
@@ -530,7 +567,7 @@ export function DateCertificatePage({
                     </p>
 
                     <p className={`mt-0.5 text-[7px] font-bold uppercase tracking-[0.22em] ${t.heroEdition}`}>
-                      Own a Date Calendar Registry • 2026 Edition
+                      Own a Date Calendar Registry
                     </p>
                   </div>
                 </div>

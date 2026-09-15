@@ -52,7 +52,7 @@ export function Footer({ onOpenAbout, onOpenRules }: FooterProps) {
 
         {/* Disclaimer & Copyright */}
         <div className="mt-8 flex flex-col gap-2 border-t border-black/[0.05] pt-6 text-center text-[10px] font-semibold text-black/40 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 Own A Date. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Own A Date. All rights reserved.</p>
           <p className="max-w-md sm:text-right">
             A digital claim on Own A Date — not legal ownership of a date or property.
           </p>

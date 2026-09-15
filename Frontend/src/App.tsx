@@ -194,10 +194,24 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-[#151515]">
       <Header
+        ownedDates={ownedDates}
         currency={currency}
         onCurrencyChange={(newCurr) => {
           setCurrency(newCurr);
           setManualCurrency(newCurr);
+        }}
+        onSelectDateKey={(dateKey) => {
+          const parts = dateKey.split("-");
+          if (parts.length === 3) {
+            const day = parseInt(parts[2], 10);
+            setSelectedDate({
+              day,
+              dateKey,
+              isPremium: premiumDateKeys.has(dateKey),
+              owner: ownedDates[dateKey],
+            });
+            document.getElementById("calendar")?.scrollIntoView({ behavior: "smooth" });
+          }
         }}
         onOpenAbout={() => setActivePage("about")}
         onOpenRules={() => setActivePage("rules")}
@@ -205,7 +219,11 @@ export default function App() {
 
       <main className="mx-auto max-w-[1500px] px-4 py-5 lg:px-8 lg:py-7">
         <div className="grid gap-5 xl:grid-cols-[240px_minmax(0,1fr)_270px]">
-          <LeftSidebar claimedCount={claimedCount} />
+          <LeftSidebar
+            claimedCount={claimedCount}
+            onOpenAbout={() => setActivePage("about")}
+            onOpenRules={() => setActivePage("rules")}
+          />
 
           <CalendarGrid
             ownedDates={ownedDates}

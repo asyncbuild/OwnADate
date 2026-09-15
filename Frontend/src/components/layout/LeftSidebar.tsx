@@ -46,9 +46,11 @@ const MARKETING_HOOKS = [
 
 interface LeftSidebarProps {
   claimedCount?: number;
+  onOpenAbout?: () => void;
+  onOpenRules?: () => void;
 }
 
-export function LeftSidebar({ claimedCount }: LeftSidebarProps) {
+export function LeftSidebar({ claimedCount, onOpenAbout, onOpenRules }: LeftSidebarProps) {
   const scrollToCalendar = () => {
     document.getElementById("calendar")?.scrollIntoView({
       behavior: "smooth",
@@ -59,9 +61,32 @@ export function LeftSidebar({ claimedCount }: LeftSidebarProps) {
     <aside className="rounded-[24px] border border-black/[0.07] bg-white p-5 sm:p-6 shadow-[0_8px_40px_rgba(0,0,0,0.035)] xl:sticky xl:top-24 xl:flex xl:flex-col overflow-hidden">
       {/* Top Header & CTA */}
       <div>
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#f2f2ef] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-black/55">
-          <Sparkles size={12} />
-          {claimedCount && claimedCount > 0 ? `${claimedCount} / 365 Dates Claimed in 2026` : "365 Unique Dates in 2026"}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#f2f2ef] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-black/55">
+            <Sparkles size={12} />
+            {claimedCount && claimedCount > 0 ? `${claimedCount} / 365 Dates Claimed` : "365 Unique Dates"}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {onOpenAbout && (
+              <button
+                type="button"
+                onClick={onOpenAbout}
+                className="rounded-full border border-black/10 bg-[#f7f7f5] px-2.5 py-1 text-[11px] font-bold text-black/70 hover:bg-black/10 transition cursor-pointer"
+              >
+                About
+              </button>
+            )}
+            {onOpenRules && (
+              <button
+                type="button"
+                onClick={onOpenRules}
+                className="rounded-full border border-black/10 bg-[#f7f7f5] px-2.5 py-1 text-[11px] font-bold text-black/70 hover:bg-black/10 transition cursor-pointer"
+              >
+                Rules & FAQ
+              </button>
+            )}
+          </div>
         </div>
 
         <h1 className="text-[32px] sm:text-[34px] font-black leading-[0.98] tracking-[-0.045em]">

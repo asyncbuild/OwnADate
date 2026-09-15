@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { DateCell, DateOwner } from "../../types/calendar";
 import { CALENDAR_YEAR, MONTHS, CATEGORY_THEMES } from "../../constants/calendar";
 import { getDaysInMonth } from "../../utils/calendar";
@@ -22,6 +23,7 @@ export function CalendarGrid({
   onSelect,
   onSelectDate,
 }: CalendarGridProps) {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const handleSelect = onSelect || onSelectDate || (() => {});
 
   return (
@@ -30,7 +32,7 @@ export function CalendarGrid({
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-1">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-black/35">
-            The 2026 Calendar
+            The Calendar Registry
           </div>
 
           <h2 className="mt-1 text-3xl font-black tracking-[-0.05em]">
@@ -38,20 +40,44 @@ export function CalendarGrid({
           </h2>
         </div>
 
-        {/* Date Categories Badge Legend */}
-        <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-black/[0.07] bg-white p-2 sm:px-3 shadow-xs">
-          <span className="mr-1 text-[9px] font-black uppercase tracking-wider text-black/40">
-            Categories:
-          </span>
-          {Object.values(CATEGORY_THEMES).map((cat) => (
-            <span
-              key={cat.name}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[9px] font-bold transition hover:scale-105 ${cat.badgeBg}`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${cat.dotBg}`} />
-              {cat.name}
+        {/* Date Categories Badge Filter Legend */}
+        <div className="relative max-w-full overflow-hidden rounded-2xl border border-black/[0.07] bg-white shadow-xs">
+          {/* Right edge fade indicator for horizontal scroll */}
+          <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-6 bg-gradient-to-l from-white to-transparent rounded-r-2xl" />
+
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-2 sm:px-3">
+            <span className="mr-1 text-[9px] font-black uppercase tracking-wider text-black/40 shrink-0">
+              Filter:
             </span>
-          ))}
+            {Object.values(CATEGORY_THEMES).map((cat) => {
+              const isSelected = selectedCategory === cat.name;
+              return (
+                <button
+                  key={cat.name}
+                  type="button"
+                  onClick={() => setSelectedCategory(isSelected ? null : cat.name)}
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold transition cursor-pointer shrink-0 whitespace-nowrap ${
+                    isSelected
+                      ? `${cat.accentBg} text-white border-transparent shadow-md scale-105`
+                      : `${cat.badgeBg} hover:scale-105`
+                  }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-white" : cat.dotBg}`} />
+                  {cat.name}
+                </button>
+              );
+            })}
+
+            {selectedCategory && (
+              <button
+                type="button"
+                onClick={() => setSelectedCategory(null)}
+                className="ml-1 text-[9px] font-extrabold uppercase text-black/50 hover:text-black cursor-pointer underline shrink-0 whitespace-nowrap pr-3"
+              >
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -65,6 +91,7 @@ export function CalendarGrid({
               key={month}
               month={month}
               cells={cells}
+              selectedCategory={selectedCategory}
               currency={currency}
               hoveredDate={hoveredDate}
               setHoveredDate={setHoveredDate}

@@ -66,6 +66,15 @@ a {
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
+/* Hide scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Upward Vertical Marquee for Desktop Sidebars */
 @keyframes marqueeVertical {
   0% {
