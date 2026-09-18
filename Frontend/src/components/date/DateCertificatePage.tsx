@@ -261,7 +261,8 @@ export function DateCertificatePage({
       filigreeGradient: "from-transparent via-black/20 to-transparent",
       ownerSub: "text-black/45",
       avatarRing: "from-black/60 via-black/30 to-black/80",
-      avatarBg: "bg-[#151515]",
+      avatarBg: "bg-[#181818]",
+      avatarText: "text-white",
       ownerName: "text-[#111111]",
       plaqueBg: "bg-[#f7f7f5]",
       plaqueBorder: "border-black/12",
@@ -302,7 +303,8 @@ export function DateCertificatePage({
       filigreeGradient: "from-transparent via-[#d4af37]/50 to-transparent",
       ownerSub: "text-[#d4af37]/80",
       avatarRing: "from-[#d4af37] via-[#f3e5ab] to-[#aa7c11]",
-      avatarBg: "bg-[#252525]",
+      avatarBg: "bg-[#1f1d18]",
+      avatarText: "text-[#f3e5ab]",
       ownerName: "text-white",
       plaqueBg: "bg-[#1e1c18]",
       plaqueBorder: "border-[#d4af37]/30",
@@ -578,24 +580,26 @@ export function DateCertificatePage({
                     This date claim is permanently associated with
                   </p>
 
-                  {/* Avatar with Metallic Ring */}
+                  {/* Avatar / Photo Frame - Square & Enlarged */}
                   <div className="mt-3.5">
                     {certificate.imageUrl ? (
-                      <div className="relative mx-auto h-[76px] w-[76px]">
-                        <div className={`absolute -inset-2 rounded-full border ${t.borderInner}`} />
-                        <div className={`relative h-[76px] w-[76px] rounded-full bg-gradient-to-tr ${t.avatarRing} p-[3.5px] shadow-md`}>
+                      <div className="relative mx-auto h-[132px] w-[132px]">
+                        <div className={`absolute -inset-2 rounded-2xl border ${t.borderInner}`} />
+                        <div className={`relative h-[132px] w-[132px] rounded-xl overflow-hidden bg-gradient-to-tr ${t.avatarRing} p-[3px] shadow-lg`}>
                           <img
                             src={certificate.imageUrl}
                             alt={certificate.name}
-                            className="h-full w-full rounded-full object-cover"
+                            className="h-full w-full rounded-[9px] object-cover"
                           />
                         </div>
                       </div>
                     ) : (
-                      <div className="relative mx-auto h-[70px] w-[70px]">
-                        <div className={`absolute -inset-2 rounded-full border ${t.borderInner}`} />
-                        <div className={`relative flex h-[70px] w-[70px] items-center justify-center rounded-full ${t.avatarBg} text-2xl font-black ${t.ownerName} shadow-md border ${t.borderInner}`}>
-                          {certificate.initial}
+                      <div className="relative mx-auto h-[120px] w-[120px]">
+                        <div className={`absolute -inset-2 rounded-2xl border ${t.borderInner}`} />
+                        <div className={`relative flex h-[120px] w-[120px] items-center justify-center rounded-xl overflow-hidden bg-gradient-to-tr ${t.avatarRing} p-[3px] shadow-lg`}>
+                          <div className={`flex h-full w-full items-center justify-center rounded-[9px] ${t.avatarBg} text-5xl font-serif font-black ${t.avatarText} tracking-wider select-none`}>
+                            {(certificate.initial || certificate.name?.charAt(0) || "✦").toUpperCase()}
+                          </div>
                         </div>
                       </div>
                     )}
