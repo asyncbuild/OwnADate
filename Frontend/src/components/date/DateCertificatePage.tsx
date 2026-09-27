@@ -1,4 +1,21 @@
-import { ArrowLeft, Download, Share2, Check, Sparkles, Gift } from "lucide-react";
+import { 
+  ArrowLeft, 
+  Download, 
+  Share2, 
+  Check, 
+  Sparkles, 
+  Gift, 
+  Lock, 
+  Unlock, 
+  Settings, 
+  Eye, 
+  EyeOff, 
+  Loader2, 
+  Clock, 
+  X,
+  ShieldCheck,
+  AlertCircle 
+} from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { toPng } from "html-to-image";
 import html2canvas from "html2canvas";
@@ -29,8 +46,28 @@ export function DateCertificatePage({
   const [certificateOwner, setCertificateOwner] = useState<DateOwner | null>(
     owner || null
   );
+  const [isOwner, setIsOwner] = useState(false);
+  const [isPrivateState, setIsPrivateState] = useState<boolean>(owner?.isPrivate || false);
+  const [showPhotoState, setShowPhotoState] = useState<boolean>(owner?.showPhotoOnTile ?? true);
   const [loading, setLoading] = useState(!owner);
   const [notFound, setNotFound] = useState(false);
+
+  // Owner Verification Modal state
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [ownerEmail, setOwnerEmail] = useState(
+    () => sessionStorage.getItem("verified_owner_email") || ""
+  );
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(300);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+
   const isJustClaimed =
     new URLSearchParams(window.location.search).get("claimed") === "success";
 
@@ -80,21 +117,27 @@ export function DateCertificatePage({
   }, []);
 
   useEffect(() => {
-    if (owner) return;
-
     let isMounted = true;
     let attempt = 0;
     const maxAttempts = isJustClaimed ? 8 : 5;
 
     const fetchCertificate = async () => {
       try {
-        const query = window.location.search;
+        const savedEmail = sessionStorage.getItem("verified_owner_email") || "";
+        const searchParams = new URLSearchParams(window.location.search);
+        if (savedEmail && !searchParams.has("email")) {
+          searchParams.set("email", savedEmail);
+        }
+        const query = searchParams.toString() ? `?${searchParams.toString()}` : "";
         const res = await fetch(apiUrl(`/api/dates/${dateKey}${query}`));
         if (!res.ok) throw new Error("Not claimed");
-        const data: { owner: DateOwner } = await res.json();
+        const data: { owner: DateOwner; isPrivate?: boolean; isOwner?: boolean } = await res.json();
 
         if (isMounted) {
           setCertificateOwner(data.owner);
+          setIsOwner(Boolean(data.isOwner));
+          setIsPrivateState(Boolean(data.isPrivate || data.owner?.isPrivate));
+          setShowPhotoState(Boolean(data.owner?.showPhotoOnTile ?? true));
           setLoading(false);
         }
       } catch (err) {
@@ -113,7 +156,99 @@ export function DateCertificatePage({
     return () => {
       isMounted = false;
     };
-  }, [dateKey, owner, isJustClaimed]);
+  }, [dateKey, isJustClaimed]);
+
+  const handleSendOtp = async () => {
+    if (!ownerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
+      setOtpError("Please enter a valid email address.");
+      return;
+    }
+    setSendingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await fetch(apiUrl("/api/auth/send-otp"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: ownerEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send code");
+      setOtpSent(true);
+      setOtpTimer(300);
+    } catch (err: any) {
+      setOtpError(err.message);
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length !== 6) {
+      setOtpError("Please enter the 6-digit code.");
+      return;
+    }
+    setVerifyingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await fetch(apiUrl("/api/auth/verify-otp"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: ownerEmail.trim(), otp }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Verification failed");
+
+      sessionStorage.setItem("verified_owner_email", ownerEmail.trim());
+      setVerifyModalOpen(false);
+
+      // Re-fetch certificate with verified email
+      const certRes = await fetch(apiUrl(`/api/dates/${dateKey}?email=${encodeURIComponent(ownerEmail.trim())}`));
+      if (certRes.ok) {
+        const certData = await certRes.json();
+        setCertificateOwner(certData.owner);
+        setIsOwner(true);
+        setIsPrivateState(certData.owner.isPrivate ?? false);
+        setShowPhotoState(certData.owner.showPhotoOnTile ?? true);
+      }
+    } catch (err: any) {
+      setOtpError(err.message);
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true);
+    setSettingsError(null);
+    try {
+      const emailToUse = ownerEmail || certificateOwner?.buyerEmail;
+      if (!emailToUse) {
+        throw new Error("Owner email not found. Please verify your ownership first.");
+      }
+      const res = await fetch(apiUrl("/api/claim/settings"), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dateKey,
+          email: emailToUse,
+          showPhotoOnTile: showPhotoState,
+          isPrivate: isPrivateState,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update settings");
+
+      setSettingsSuccess(true);
+      setTimeout(() => {
+        setSettingsSuccess(false);
+        setSettingsModalOpen(false);
+      }, 1200);
+    } catch (err: any) {
+      setSettingsError(err.message || "Failed to update privacy settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -348,14 +483,14 @@ export function DateCertificatePage({
       )}
 
       {/* =========================================================
-          ACTION BAR - CLEAN ALIGNMENT FOR MOBILE & DESKTOP
+          ACTION BAR - FULLY RESPONSIVE FOR MOBILE, TABLET & DESKTOP
       ========================================================== */}
-      <div className="mx-auto flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between max-w-[794px] print:hidden">
-        {/* Left Row: Back Button & Theme Pill Selector */}
-        <div className="flex items-center justify-between sm:justify-start gap-2.5 w-full sm:w-auto">
+      <div className="mx-auto w-full max-w-[794px] space-y-2.5 print:hidden">
+        {/* Row 1: Back Navigation (Left) & Theme Switcher (Right) */}
+        <div className="flex items-center justify-between gap-2 w-full">
           <button
             onClick={onBack}
-            className="group flex items-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-3.5 py-2 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:border-black hover:bg-black hover:text-white shrink-0"
+            className="group flex h-9 items-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3.5 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur transition-all hover:border-black hover:bg-black hover:text-white shrink-0 cursor-pointer"
           >
             <ArrowLeft
               size={14}
@@ -365,61 +500,98 @@ export function DateCertificatePage({
           </button>
 
           {/* Theme Selector: Minimal vs Midnight */}
-          <div className="flex items-center gap-1 rounded-full border border-black/10 bg-white/95 p-1 shadow-sm text-[10.5px] font-bold shrink-0">
+          <div className="flex h-9 items-center gap-1 rounded-full border border-black/10 bg-white/95 p-1 shadow-xs text-xs shrink-0">
             <button
               onClick={() => setTheme("minimal")}
-              className={`rounded-full px-3 py-1 transition-all duration-200 cursor-pointer ${
+              className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-xs transition-all cursor-pointer ${
                 theme === "minimal"
-                  ? "bg-[#151515] text-white shadow-sm font-black"
-                  : "text-black/60 hover:text-black hover:bg-black/5"
+                  ? "bg-black text-white font-bold shadow-xs"
+                  : "text-neutral-600 hover:text-black hover:bg-black/5"
               }`}
             >
-              🖤 Minimal
+              <span>🖤</span>
+              <span>Minimal</span>
             </button>
             <button
               onClick={() => setTheme("dark")}
-              className={`rounded-full px-3 py-1 transition-all duration-200 cursor-pointer ${
+              className={`flex h-7 items-center gap-1.5 rounded-full px-3 text-xs transition-all cursor-pointer ${
                 theme === "dark"
-                  ? "bg-[#252525] text-[#f3e5ab] shadow-sm font-black"
-                  : "text-black/60 hover:text-black hover:bg-black/5"
+                  ? "bg-[#252525] text-[#f3e5ab] font-bold shadow-xs"
+                  : "text-neutral-600 hover:text-black hover:bg-black/5"
               }`}
             >
-              🌙 Midnight
+              <span>🌙</span>
+              <span>Midnight</span>
             </button>
           </div>
         </div>
 
-        {/* Right Row: Share & Download Buttons */}
-        <div className="flex items-center gap-2 justify-between sm:justify-end w-full sm:w-auto flex-wrap">
-          {/* WhatsApp Direct Share Button */}
+        {/* Row 2: Actions Toolbar - 2x2 Grid on Mobile, Flex on Desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:items-center sm:gap-2 w-full">
+          {/* Action 1: Owner Privacy Controls */}
+          {isOwner ? (
+            <button
+              onClick={() => {
+                setSettingsError(null);
+                setSettingsModalOpen(true);
+              }}
+              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur transition hover:border-black hover:bg-black hover:text-white cursor-pointer w-full sm:w-auto"
+            >
+              <Settings size={13} className="shrink-0" />
+              <span className="truncate">Privacy Settings</span>
+            </button>
+          ) : certificate.isPrivate ? (
+            <button
+              onClick={() => setVerifyModalOpen(true)}
+              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-black px-3.5 text-xs font-bold text-white shadow-xs transition hover:bg-black/80 cursor-pointer w-full sm:w-auto"
+            >
+              <Unlock size={13} className="shrink-0" />
+              <span className="truncate">Unlock as Owner</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setVerifyModalOpen(true)}
+              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-600 shadow-xs transition hover:text-black hover:border-black cursor-pointer w-full sm:w-auto"
+              title="Are you the owner of this date?"
+            >
+              <Settings size={13} className="shrink-0" />
+              <span className="truncate">Owner?</span>
+            </button>
+          )}
+
+          {/* Action 2: WhatsApp Direct Share */}
           <a
             href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${certificate.name}'s claimed date: "${certificate.title}" on Own a Date! ✨ ${window.location.origin}/date/${dateKey}`)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2 text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-500/20 shadow-xs cursor-pointer"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-emerald-600/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-500/20 shadow-xs cursor-pointer w-full sm:w-auto"
           >
-            <span>💬 WhatsApp</span>
+            <span>💬</span>
+            <span className="truncate">WhatsApp</span>
           </a>
 
+          {/* Action 3: Copy Link */}
           <button
             onClick={handleShare}
-            className="flex items-center gap-1.5 rounded-full border border-black/10 bg-white/90 px-3.5 py-2 text-[11px] font-bold shadow-sm backdrop-blur transition-all duration-200 hover:border-black hover:shadow-md cursor-pointer"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur transition hover:border-black hover:bg-black hover:text-white cursor-pointer w-full sm:w-auto"
           >
             {copied ? (
-              <Check size={14} className="text-emerald-500" />
+              <Check size={13} className="text-emerald-500 shrink-0" />
             ) : (
-              <Share2 size={14} />
+              <Share2 size={13} className="shrink-0" />
             )}
-            <span>{copied ? "Link Copied!" : "Copy Link"}</span>
+            <span className="truncate">{copied ? "Copied!" : "Copy Link"}</span>
           </button>
 
+          {/* Action 4: Download Certificate */}
           <button
             onClick={handleDownload}
             disabled={downloading}
-            className="flex items-center gap-1.5 rounded-full bg-[#151515] px-4 py-2 text-[11px] font-bold text-white shadow-md transition-all duration-200 hover:bg-black/80 hover:shadow-xl disabled:opacity-50 cursor-pointer whitespace-nowrap"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-black px-4 text-xs font-bold text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 cursor-pointer whitespace-nowrap w-full sm:w-auto sm:ml-auto shrink-0"
           >
-            <Download size={14} className={downloading ? "animate-bounce" : ""} />
-            <span>{downloading ? "Downloading..." : "Download Certificate"}</span>
+            <Download size={13} className={`shrink-0 ${downloading ? "animate-bounce" : ""}`} />
+            <span className="sm:hidden">Download</span>
+            <span className="hidden sm:inline">{downloading ? "Downloading..." : "Download Certificate"}</span>
           </button>
         </div>
       </div>
@@ -635,39 +807,63 @@ export function DateCertificatePage({
                     {/* Plaque inner border */}
                     <div className={`pointer-events-none absolute inset-1.5 rounded-[16px] border ${t.plaqueInnerBorder}`} />
 
-                    <div className="relative text-center">
-                      <div className={`text-[7.5px] font-black uppercase tracking-[0.36em] ${t.plaqueHeader}`}>
-                        Personal Dedication
-                      </div>
-
-                      {/* Decorative quotation */}
-                      <div className={`mt-0.5 text-2xl font-serif leading-none ${t.plaqueQuote}`}>
-                        “
-                      </div>
-
-                      <div className={`mx-auto -mt-1 max-w-xl text-[16px] lg:text-[18px] font-black leading-snug tracking-[-0.02em] ${t.plaqueTitle}`}>
-                        {certificate.title}
-                      </div>
-
-                      <div className={`mx-auto mt-2.5 h-px w-10 ${t.filigreeLine}`} />
-
-                      <p className={`mx-auto mt-2.5 max-w-xl text-[11px] leading-5 font-medium ${t.plaqueStory}`}>
-                        {certificate.story}
-                      </p>
-
-                      {certificate.link && (
-                        <div className={`mt-3.5 border-t ${t.footerBorder} pt-2`}>
-                          <a
-                            href={certificate.link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className={`break-all text-[8px] font-bold ${t.plaqueHeader} underline underline-offset-4 transition hover:opacity-80`}
-                          >
-                            {certificate.link}
-                          </a>
+                    {certificate.isPrivate && !isOwner ? (
+                      <div className="relative text-center py-4">
+                        <div className="flex justify-center mb-2">
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-full ${theme === "dark" ? "bg-white/10 text-[#f3e5ab]" : "bg-black/5 text-black/60"}`}>
+                            <Lock size={18} />
+                          </div>
                         </div>
-                      )}
-                    </div>
+                        <div className={`text-[8px] font-black uppercase tracking-[0.3em] ${t.plaqueHeader}`}>
+                          Private Dedication
+                        </div>
+                        <p className={`mx-auto mt-2 max-w-sm text-[11px] leading-relaxed font-medium ${t.plaqueStory}`}>
+                          The owner has reserved this date and set the dedication message to private.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setVerifyModalOpen(true)}
+                          className="mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-black px-4 py-1.5 text-[11px] font-bold text-white shadow-sm hover:bg-black/80 transition cursor-pointer print:hidden"
+                        >
+                          <Unlock size={12} />
+                          <span>Unlock with Owner Email</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative text-center">
+                        <div className={`text-[7.5px] font-black uppercase tracking-[0.36em] ${t.plaqueHeader}`}>
+                          Personal Dedication
+                        </div>
+
+                        {/* Decorative quotation */}
+                        <div className={`mt-0.5 text-2xl font-serif leading-none ${t.plaqueQuote}`}>
+                          “
+                        </div>
+
+                        <div className={`mx-auto -mt-1 max-w-xl text-[16px] lg:text-[18px] font-black leading-snug tracking-[-0.02em] ${t.plaqueTitle}`}>
+                          {certificate.title}
+                        </div>
+
+                        <div className={`mx-auto mt-2.5 h-px w-10 ${t.filigreeLine}`} />
+
+                        <p className={`mx-auto mt-2.5 max-w-xl text-[11px] leading-5 font-medium ${t.plaqueStory}`}>
+                          {certificate.story}
+                        </p>
+
+                        {certificate.link && (
+                          <div className={`mt-3.5 border-t ${t.footerBorder} pt-2`}>
+                            <a
+                              href={certificate.link}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={`break-all text-[8px] font-bold ${t.plaqueHeader} underline underline-offset-4 transition hover:opacity-80`}
+                            >
+                              {certificate.link}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -746,6 +942,214 @@ export function DateCertificatePage({
           </div>
         </div>
       </div>
+
+      {/* =========================================================
+          MODAL 1: OWNER VERIFICATION (EMAIL & OTP)
+      ========================================================== */}
+      {verifyModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setVerifyModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-black">
+                  <ShieldCheck size={16} />
+                </span>
+                <h3 className="text-base font-black text-black">Owner Verification</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVerifyModalOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4f4f1] text-black/60 hover:bg-black hover:text-white transition"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <p className="mt-2 text-xs text-black/60 leading-relaxed">
+              Enter the buyer email address registered for this date to unlock owner controls and private certificate access:
+            </p>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
+                  Owner Email Address
+                </label>
+                <div className="mt-1 flex gap-2">
+                  <input
+                    type="email"
+                    value={ownerEmail}
+                    onChange={(e) => setOwnerEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    className="flex-1 rounded-xl border border-black/10 bg-[#fafaf8] px-3.5 py-2.5 text-xs font-semibold focus:border-black focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    disabled={sendingOtp || !ownerEmail}
+                    onClick={handleSendOtp}
+                    className="rounded-xl bg-black px-3.5 py-2.5 text-xs font-bold text-white hover:bg-black/80 disabled:opacity-40 transition"
+                  >
+                    {sendingOtp ? "Sending..." : otpSent ? "Resend" : "Send OTP"}
+                  </button>
+                </div>
+              </div>
+
+              {otpSent && (
+                <div className="rounded-xl border border-black/10 bg-[#fafaf8] p-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-black/70">
+                    <span>Enter the 6-digit code sent to your inbox:</span>
+                    <span className="text-[10px] text-amber-700 font-bold flex items-center gap-1">
+                      <Clock size={11} /> {Math.floor(otpTimer / 60)}:{(otpTimer % 60).toString().padStart(2, "0")}
+                    </span>
+                  </div>
+
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                      placeholder="123456"
+                      className="w-32 rounded-lg border border-black/15 bg-white px-3 py-2 text-center text-sm font-bold tracking-widest text-black focus:border-black focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={verifyingOtp || otp.length !== 6}
+                      onClick={handleVerifyOtp}
+                      className="flex-1 rounded-lg bg-black px-4 py-2 text-xs font-bold text-white hover:bg-black/80 disabled:opacity-40 transition flex items-center justify-center gap-1.5"
+                    >
+                      {verifyingOtp ? <Loader2 size={13} className="animate-spin" /> : <Unlock size={13} />}
+                      <span>Verify & Access</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {otpError && (
+                <p className="text-xs font-semibold text-red-600 animate-in fade-in duration-150">
+                  {otpError}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          MODAL 2: OWNER PRIVACY & VISIBILITY CONTROLS
+      ========================================================== */}
+      {settingsModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setSettingsModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/5 text-black">
+                  <Settings size={16} />
+                </span>
+                <h3 className="text-base font-black text-black">Manage Privacy Settings</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSettingsModalOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4f4f1] text-black/60 hover:bg-black hover:text-white transition"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <p className="mt-2 text-xs text-black/60 leading-relaxed">
+              As the owner of <strong>{formatDate(dateKey)}</strong>, you can change your visibility options at any time:
+            </p>
+
+            <div className="mt-4 space-y-3 rounded-2xl border border-black/10 bg-[#fafaf8] p-4">
+              {/* Toggle 1: Tile Photo */}
+              <label className="flex items-start justify-between cursor-pointer gap-3 text-xs">
+                <div className="pr-2">
+                  <div className="flex items-center gap-1.5 font-bold text-black">
+                    {showPhotoState ? <Eye size={13} className="text-emerald-600" /> : <EyeOff size={13} className="text-black/40" />}
+                    <span>Show Photo on Calendar Tile</span>
+                  </div>
+                  <p className="text-[11px] text-black/50 leading-tight mt-1">
+                    {showPhotoState
+                      ? "Your photo is displayed directly on the calendar date tile."
+                      : "Your initial is shown on the date tile instead of your photo."}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={showPhotoState}
+                  onChange={(e) => setShowPhotoState(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded accent-black cursor-pointer shrink-0"
+                />
+              </label>
+
+              {/* Toggle 2: Certificate Visibility */}
+              <label className="flex items-start justify-between cursor-pointer gap-3 text-xs pt-3 border-t border-black/10">
+                <div className="pr-2">
+                  <div className="flex items-center gap-1.5 font-bold text-black">
+                    {isPrivateState ? <Lock size={13} className="text-amber-600" /> : <Unlock size={13} className="text-emerald-600" />}
+                    <span>Private Dedication & Certificate</span>
+                  </div>
+                  <p className="text-[11px] text-black/50 leading-tight mt-1">
+                    {isPrivateState
+                      ? "Only you can view your full dedication story & certificate after email verification."
+                      : "Your dedication story & certificate are publicly viewable by visitors."}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isPrivateState}
+                  onChange={(e) => setIsPrivateState(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded accent-black cursor-pointer shrink-0"
+                />
+              </label>
+            </div>
+
+            {settingsSuccess && (
+              <div className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500/10 p-2 text-xs font-bold text-emerald-700 animate-in fade-in duration-150">
+                <Check size={14} /> Settings updated successfully!
+              </div>
+            )}
+
+            {settingsError && (
+              <div className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-red-500/10 p-2.5 text-xs font-semibold text-red-600 animate-in fade-in duration-150">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{settingsError}</span>
+              </div>
+            )}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSettingsModalOpen(false)}
+                className="flex-1 rounded-xl border border-black/10 bg-[#f7f7f5] py-2.5 text-xs font-bold text-black/70 hover:bg-black/5 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingSettings}
+                onClick={handleSaveSettings}
+                className="flex-1 rounded-xl bg-black py-2.5 text-xs font-bold text-white hover:bg-black/80 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {savingSettings ? <Loader2 size={13} className="animate-spin" /> : null}
+                <span>{savingSettings ? "Saving..." : "Save Changes"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

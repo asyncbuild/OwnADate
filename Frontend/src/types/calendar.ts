@@ -36,6 +36,8 @@ export type DateOwner = {
   link?: string;
   certificateId: string;
   claimedAt: string;        // Formatted date string or ISO
+  showPhotoOnTile?: boolean;
+  isPrivate?: boolean;
 };
 
 export type DateCell = {

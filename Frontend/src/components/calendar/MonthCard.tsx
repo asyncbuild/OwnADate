@@ -11,6 +11,7 @@ interface MonthCardProps {
   hoveredDate: string | null;
   setHoveredDate: (value: string | null) => void;
   onSelect: (date: DateCell) => void;
+  isLoading?: boolean;
 }
 
 export function MonthCard({
@@ -21,6 +22,7 @@ export function MonthCard({
   hoveredDate,
   setHoveredDate,
   onSelect,
+  isLoading = false,
 }: MonthCardProps) {
   return (
     <div className="relative rounded-[20px] border border-black/[0.07] bg-white p-3 shadow-[0_5px_25px_rgba(0,0,0,0.025)]">
@@ -37,16 +39,30 @@ export function MonthCard({
         {weekDays.map((day, index) => (
           <div
             key={index}
-            className="flex h-5 items-center justify-center text-[8px] font-bold text-black/25"
+            className="flex h-5 items-center justify-center text-[9px] font-extrabold text-black/40 select-none"
           >
             {day}
           </div>
         ))}
 
-      {/* Dates */}
+        {/* Dates */}
         {cells.map((cell, cellIndex) => {
           if (cell.day === 0) {
             return <div key={cell.dateKey} className="aspect-square" />;
+          }
+
+          if (isLoading) {
+            return (
+              <div key={cell.dateKey} className="relative">
+                <div
+                  className="relative flex aspect-square w-full flex-col items-center justify-center rounded-lg border border-black/[0.08] animate-shimmer select-none"
+                >
+                  <span className="relative z-10 leading-none text-[10px] font-bold text-black/30">
+                    {cell.day}
+                  </span>
+                </div>
+              </div>
+            );
           }
 
           const isOwned = Boolean(cell.owner);
@@ -70,7 +86,8 @@ export function MonthCard({
                 className={`
                   relative flex aspect-square w-full flex-col
                   items-center justify-center rounded-lg border
-                  text-[9px] font-semibold transition-all duration-200
+                  text-[10px] sm:text-[11px] font-bold transition-all duration-150
+                  antialiased select-none cursor-pointer
 
                   ${isDimmedByFilter ? "opacity-25 hover:opacity-100 scale-95" : ""}
                   ${matchesCategoryFilter ? "ring-2 ring-black font-black scale-105 shadow-md z-20" : ""}
@@ -79,8 +96,8 @@ export function MonthCard({
                     isOwned && theme
                       ? `${theme.pastelBg} ${theme.borderColor} ${theme.badgeText} font-black hover:-translate-y-0.5 hover:shadow-md`
                       : cell.isPremium
-                      ? "border-amber-200 bg-[#fffdf5] text-amber-950 font-bold hover:-translate-y-0.5 hover:border-amber-400 hover:bg-amber-100/50 hover:shadow-md"
-                      : "border-black/[0.06] bg-[#fafaf8] text-black/65 hover:-translate-y-0.5 hover:border-black/25 hover:bg-white hover:shadow-md"
+                      ? "border-amber-400/80 bg-[#fffef7] text-amber-950 font-bold hover:-translate-y-0.5 hover:border-amber-500 hover:bg-amber-100/60 hover:shadow-md"
+                      : "border-black/[0.12] bg-[#fafaf8] text-[#1c1c1c] font-bold hover:-translate-y-0.5 hover:border-black/35 hover:bg-white hover:shadow-md"
                   }
                 `}
               >
@@ -91,7 +108,7 @@ export function MonthCard({
                     className="absolute inset-0 z-0 h-full w-full rounded-lg object-cover"
                   />
                 ) : (
-                  <span className="relative z-10 leading-none text-[10px] font-black">
+                  <span className="relative z-10 leading-none text-[10px] sm:text-[11px] font-bold tracking-tight">
                     {isOwned ? cell.owner?.initial : cell.day}
                   </span>
                 )}
@@ -99,14 +116,14 @@ export function MonthCard({
                 {/* Subtle Gift Icon Badge if gifted */}
                 {isOwned && cell.owner?.isGift && (
                   <span className="absolute right-0.5 top-0.5 z-10 text-rose-500">
-                    <Gift size={7} />
+                    <Gift size={8} />
                   </span>
                 )}
 
                 {/* Premium Sparkle Icon for Unclaimed Premium Dates */}
                 {!isOwned && cell.isPremium && (
                   <span className="absolute right-0.5 top-0.5 z-10 text-amber-500">
-                    <Sparkles size={7} />
+                    <Sparkles size={8} />
                   </span>
                 )}
               </button>

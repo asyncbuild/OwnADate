@@ -12,6 +12,7 @@ interface CalendarGridProps {
   setHoveredDate: (value: string | null) => void;
   onSelect?: (date: DateCell) => void;
   onSelectDate?: (date: DateCell) => void;
+  isLoading?: boolean;
 }
 
 export function CalendarGrid({
@@ -22,6 +23,7 @@ export function CalendarGrid({
   setHoveredDate,
   onSelect,
   onSelectDate,
+  isLoading = false,
 }: CalendarGridProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const handleSelect = onSelect || onSelectDate || (() => {});
@@ -96,6 +98,7 @@ export function CalendarGrid({
               hoveredDate={hoveredDate}
               setHoveredDate={setHoveredDate}
               onSelect={handleSelect}
+              isLoading={isLoading}
             />
           );
         })}

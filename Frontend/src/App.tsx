@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DateCell, DateOwner } from "./types/calendar";
-import { INITIAL_OWNED_DATES, INITIAL_ACTIVITIES, PREMIUM_DATE_KEYS } from "./constants/calendar";
+import { INITIAL_ACTIVITIES, PREMIUM_DATE_KEYS } from "./constants/calendar";
 import { Header } from "./components/layout/Header";
 import { LeftSidebar } from "./components/layout/LeftSidebar";
 import { RightSidebar } from "./components/layout/RightSidebar";
@@ -13,14 +13,13 @@ import { apiUrl } from "./config/api";
 import { getDetectedCurrency, setManualCurrency } from "./utils/currency";
 
 export default function App() {
-  const [ownedDates, setOwnedDates] = useState<Record<string, DateOwner>>(INITIAL_OWNED_DATES);
+  const [ownedDates, setOwnedDates] = useState<Record<string, DateOwner>>({});
   const [premiumDateKeys, setPremiumDateKeys] = useState<Set<string>>(PREMIUM_DATE_KEYS);
   const [activities] = useState(INITIAL_ACTIVITIES);
   const [selectedDate, setSelectedDate] = useState<DateCell | null>(null);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
   const [currency, setCurrency] = useState<"INR" | "USD">("INR");
-  const [initialLoading, setInitialLoading] = useState(true);
-  const [isWakingUp, setIsWakingUp] = useState(false);
+  const [isLoadingDates, setIsLoadingDates] = useState(true);
 
   // Active page view: "calendar" | "certificate" | "about" | "rules"
   const [activePage, setActivePage] = useState<"calendar" | "certificate" | "about" | "rules">("calendar");
@@ -36,10 +35,6 @@ export default function App() {
       if (isMounted) setCurrency(curr);
     });
 
-    const timer = setTimeout(() => {
-      if (isMounted) setIsWakingUp(true);
-    }, 1800);
-
     const loadDates = async () => {
       try {
         const res = await fetch(apiUrl("/api/dates"));
@@ -52,16 +47,14 @@ export default function App() {
           setPremiumDateKeys(new Set(data.premiumDates));
         }
         if (isMounted) {
-          setInitialLoading(false);
-          clearTimeout(timer);
+          setIsLoadingDates(false);
         }
       } catch (err) {
         attempts++;
         if (attempts < maxAttempts && isMounted) {
           setTimeout(loadDates, 2000);
         } else if (isMounted) {
-          setInitialLoading(false);
-          clearTimeout(timer);
+          setIsLoadingDates(false);
         }
       }
     };
@@ -70,7 +63,6 @@ export default function App() {
 
     return () => {
       isMounted = false;
-      clearTimeout(timer);
     };
   }, []);
 
@@ -99,63 +91,6 @@ export default function App() {
     setViewingCertificateKey(null);
     setActivePage("calendar");
   };
-
-  // Initial Server Warmup / Loading Screen
-  if (initialLoading && !publicDateKey) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f7f7f5] px-6 text-center">
-        <div className="w-full max-w-sm rounded-[32px] border border-black/10 bg-white p-8 shadow-2xl">
-          {/* Stationary Square Frame with Traveling Border Line Animation */}
-          <div className="relative mx-auto mb-6 flex h-16 w-16 items-center justify-center">
-            <svg className="absolute inset-0 h-16 w-16" viewBox="0 0 64 64">
-              <rect
-                x="3"
-                y="3"
-                width="58"
-                height="58"
-                rx="16"
-                fill="none"
-                stroke="rgba(0, 0, 0, 0.08)"
-                strokeWidth="2.5"
-              />
-              <rect
-                x="3"
-                y="3"
-                width="58"
-                height="58"
-                rx="16"
-                fill="none"
-                stroke="#111"
-                strokeWidth="2.5"
-                strokeDasharray="60 170"
-                className="animate-square-trace"
-              />
-            </svg>
-            <img
-              src="/OwnADate.png"
-              alt="Own a Date Logo"
-              className="h-10 w-10 rounded-xl object-cover shadow-sm"
-            />
-          </div>
-
-          <h1 className="text-2xl font-black tracking-tight text-black sm:text-3xl">
-            Own a Date
-          </h1>
-          <p className="mt-1.5 text-[9px] font-black uppercase tracking-[0.28em] text-black/35">
-            Every day has a story
-          </p>
-
-          <div className="mt-7 border-t border-black/[0.08] pt-6">
-            <p className="text-xs font-semibold leading-relaxed text-black/60">
-              {isWakingUp
-                ? "Opening the vault of 365 unique dates... Every moment is being prepared."
-                : "Opening the 365-day calendar registry..."}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // Public certificate URLs are loaded directly from the backend.
   if (publicDateKey) {
@@ -232,6 +167,7 @@ export default function App() {
             hoveredDate={hoveredDate}
             setHoveredDate={setHoveredDate}
             onSelect={setSelectedDate}
+            isLoading={isLoadingDates}
           />
 
           <RightSidebar

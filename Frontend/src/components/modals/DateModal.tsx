@@ -17,12 +17,15 @@ import {
   Bookmark,
   Check,
   Clock,
+  ShieldCheck,
+  AlertTriangle,
 } from "lucide-react";
 import type { DateCell, Category } from "../../types/calendar";
 import { formatDate } from "../../utils/calendar";
 import { STANDARD_PRICE, PREMIUM_PRICE } from "../../constants/calendar";
 import { apiUrl } from "../../config/api";
 import { getDetectedCurrency } from "../../utils/currency";
+import { checkImageNSFW } from "../../utils/nsfwChecker";
 
 interface DateModalProps {
   date: DateCell;
@@ -68,7 +71,12 @@ export function DateModal({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isScanningImage, setIsScanningImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [isImageVerified, setIsImageVerified] = useState(false);
   const [currency, setCurrency] = useState<"INR" | "USD">(initialCurrency || "INR");
+  const [showPhotoOnTile, setShowPhotoOnTile] = useState(true);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const displayPrice = currency === "INR" ? price : date.isPremium ? 8.99 : 4.99;
 
@@ -161,18 +169,44 @@ export function DateModal({
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setImageError(null);
+    setIsImageVerified(false);
+
     if (file.size > 3 * 1024 * 1024) {
-      alert("Image size must be under 3MB");
+      setImageError("Image size must be under 3MB");
       e.target.value = "";
       return;
     }
 
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview(previewUrl);
+    setIsScanningImage(true);
+
+    try {
+      const result = await checkImageNSFW(file);
+      if (!result.isSafe) {
+        URL.revokeObjectURL(previewUrl);
+        setImagePreview(null);
+        setImageFile(null);
+        setIsImageVerified(false);
+        setImageError(result.reason || "NSFW or explicit content detected. Please choose a family-friendly image.");
+        e.target.value = "";
+      } else {
+        setImageFile(file);
+        setIsImageVerified(true);
+      }
+    } catch (err) {
+      console.error("NSFW check failed:", err);
+      // If AI model fails to process, still accept the file safely
+      setImageFile(file);
+      setIsImageVerified(true);
+    } finally {
+      setIsScanningImage(false);
+    }
   };
 
   const uploadImage = async (file: File): Promise<string> => {
@@ -220,6 +254,8 @@ export function DateModal({
           story: story.trim(),
           category,
           link: link.trim() || undefined,
+          showPhotoOnTile,
+          isPrivate,
         }),
       });
 
@@ -396,28 +432,70 @@ export function DateModal({
               </div>
 
                 <div>
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
-                    Dedication Photo (Optional)
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
+                      Dedication Photo (Optional)
+                    </label>
+                    {isScanningImage && (
+                      <span className="flex items-center gap-1 text-[11px] font-medium text-amber-600 animate-pulse">
+                        <Loader2 size={12} className="animate-spin" />
+                        Scanning for safety...
+                      </span>
+                    )}
+                    {!isScanningImage && isImageVerified && imagePreview && (
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-600">
+                        <ShieldCheck size={12} />
+                        Safe photo verified
+                      </span>
+                    )}
+                  </div>
+
+                  {imageError && (
+                    <div className="mt-1.5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-2.5 text-xs text-red-700 animate-in fade-in duration-200">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-600" />
+                      <div className="flex-1">
+                        <p className="font-semibold">Image rejected</p>
+                        <p className="text-[11px] text-red-600/90">{imageError}</p>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={() => setImageError(null)} 
+                        className="text-red-500 hover:text-red-700 transition"
+                        aria-label="Dismiss error"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
 
                   {imagePreview ? (
                     <div className="relative mt-1.5 h-24 w-24 overflow-hidden rounded-2xl border border-black/10">
                       <img
                         src={imagePreview}
                         alt="Preview"
-                        className="h-full w-full object-cover"
+                        className={`h-full w-full object-cover transition duration-200 ${isScanningImage ? "opacity-30 blur-xs scale-95" : "opacity-100 scale-100"}`}
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImageFile(null);
-                          setImagePreview(null);
-                        }}
-                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white"
-                        aria-label="Remove dedication photo"
-                      >
-                        <X size={12} />
-                      </button>
+                      {isScanningImage && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/30 p-1 text-center backdrop-blur-[1px]">
+                          <Loader2 size={18} className="animate-spin text-white" />
+                          <span className="mt-1 text-[9px] font-bold text-white tracking-wide uppercase">Scanning</span>
+                        </div>
+                      )}
+                      {!isScanningImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImageFile(null);
+                            setImagePreview(null);
+                            setIsImageVerified(false);
+                            setImageError(null);
+                          }}
+                          className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black transition"
+                          aria-label="Remove dedication photo"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <label className="mt-1.5 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-black/20 bg-[#fafaf8] py-3 text-xs font-semibold text-black/60 transition hover:border-black/50 hover:bg-white">
@@ -428,6 +506,7 @@ export function DateModal({
                         accept="image/jpeg,image/png,image/webp,image/gif"
                         onChange={handleImageChange}
                         className="hidden"
+                        disabled={isScanningImage}
                       />
                     </label>
                   )}
@@ -630,6 +709,54 @@ export function DateModal({
                   className="mt-1 w-full rounded-xl border border-black/10 bg-[#fafaf8] px-3.5 py-2.5 text-xs font-semibold focus:border-black focus:outline-none"
                 />
               </div>
+            </div>
+
+            {/* Privacy & Visibility Options */}
+            <div className="rounded-2xl border border-black/10 bg-[#fafaf8] p-4 space-y-3">
+              <div className="flex items-center gap-1.5">
+                <Lock size={12} className="text-black/60" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-black/50">
+                  Privacy & Visibility Options
+                </span>
+              </div>
+
+              {/* Toggle 1: Show photo on tile */}
+              {imagePreview && (
+                <label className="flex items-start justify-between cursor-pointer gap-3 text-xs pt-1 border-t border-black/5">
+                  <div className="pr-2">
+                    <span className="font-bold text-black block">Show photo on calendar tile</span>
+                    <p className="text-[11px] text-black/50 leading-tight mt-0.5">
+                      {showPhotoOnTile 
+                        ? "Your photo will appear on the calendar date tile."
+                        : "Your initial will appear on the date tile instead of your photo."}
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={showPhotoOnTile}
+                    onChange={(e) => setShowPhotoOnTile(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded accent-black cursor-pointer shrink-0"
+                  />
+                </label>
+              )}
+
+              {/* Toggle 2: Private Dedication */}
+              <label className="flex items-start justify-between cursor-pointer gap-3 text-xs pt-1 border-t border-black/5">
+                <div className="pr-2">
+                  <span className="font-bold text-black block">Make story & certificate private</span>
+                  <p className="text-[11px] text-black/50 leading-tight mt-0.5">
+                    {isPrivate
+                      ? "Only you can view your full story & certificate by verifying your email."
+                      : "Anyone can view your public dedication story & certificate."}
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isPrivate}
+                  onChange={(e) => setIsPrivate(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded accent-black cursor-pointer shrink-0"
+                />
+              </label>
             </div>
 
             {/* Price Summary */}

@@ -20,25 +20,27 @@ model DateEntry {
 }
 
 model Claim {
-  id            String     @id @default(uuid())
-  certificateId String     @unique @db.VarChar(50)
-  dateKey       String     @unique @db.VarChar(10)
-  ownerName     String     @db.VarChar(100)
-  initial       String     @db.VarChar(5)
-  isGift        Boolean    @default(false)
-  senderName    String?    @db.VarChar(100)
-  buyerEmail    String     @db.VarChar(255)
-  title         String     @db.VarChar(200)
-  story         String
-  category      Category   @default(Memory)
-  link          String?    @db.VarChar(500)
-  pricePaid     Int
-  paymentId     String     @unique @db.VarChar(100)
-  claimedAt     DateTime   @default(now())
-  currency      String     @default("INR") @db.VarChar(3)
-  imageUrl      String?    @db.VarChar(500)
-  activities    Activity[]
-  dateEntry     DateEntry  @relation(fields: [dateKey], references: [dateKey])
+  id              String     @id @default(uuid())
+  certificateId   String     @unique @db.VarChar(50)
+  dateKey         String     @unique @db.VarChar(10)
+  ownerName       String     @db.VarChar(100)
+  initial         String     @db.VarChar(5)
+  isGift          Boolean    @default(false)
+  senderName      String?    @db.VarChar(100)
+  buyerEmail      String     @db.VarChar(255)
+  title           String     @db.VarChar(200)
+  story           String
+  category        Category   @default(Memory)
+  link            String?    @db.VarChar(500)
+  pricePaid       Int
+  paymentId       String     @unique @db.VarChar(100)
+  claimedAt       DateTime   @default(now())
+  currency        String     @default("INR") @db.VarChar(3)
+  imageUrl        String?    @db.VarChar(500)
+  showPhotoOnTile Boolean    @default(true)
+  isPrivate       Boolean    @default(false)
+  activities      Activity[]
+  dateEntry       DateEntry  @relation(fields: [dateKey], references: [dateKey])
 
   @@index([certificateId])
   @@index([dateKey])
@@ -46,23 +48,25 @@ model Claim {
 }
 
 model Order {
-  id         String        @id
-  dateKey    String        @db.VarChar(10)
-  amount     Int
-  currency   String        @default("INR") @db.VarChar(3)
-  status     PaymentStatus @default(PENDING)
-  name       String        @db.VarChar(100)
-  isGift     Boolean       @default(false)
-  senderName String?       @db.VarChar(100)
-  buyerEmail String        @db.VarChar(255)
-  title      String        @db.VarChar(200)
-  story      String
-  category   Category      @default(Memory)
-  link       String?       @db.VarChar(500)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
-  imageUrl   String?       @db.VarChar(500)
-  dateEntry  DateEntry     @relation(fields: [dateKey], references: [dateKey])
+  id              String        @id
+  dateKey         String        @db.VarChar(10)
+  amount          Int
+  currency        String        @default("INR") @db.VarChar(3)
+  status          PaymentStatus @default(PENDING)
+  name            String        @db.VarChar(100)
+  isGift          Boolean       @default(false)
+  senderName      String?       @db.VarChar(100)
+  buyerEmail      String        @db.VarChar(255)
+  title           String        @db.VarChar(200)
+  story           String
+  category        Category      @default(Memory)
+  link            String?       @db.VarChar(500)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  imageUrl        String?       @db.VarChar(500)
+  showPhotoOnTile Boolean       @default(true)
+  isPrivate       Boolean       @default(false)
+  dateEntry       DateEntry     @relation(fields: [dateKey], references: [dateKey])
 
   @@map("orders")
 }
@@ -121,6 +125,7 @@ enum Category {
   Love
   Birthday
   Anniversary
+  Aniversary
   Milestone
   Memory
   Special

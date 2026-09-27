@@ -108,8 +108,10 @@ const OrderInputSchema = z.object({
     title: z.string().min(1).max(200),
     story: z.string().min(1).max(2000),
     category: z.nativeEnum(Category),
-    link:z.string().url().or(z.literal("")).optional(),
-})
+    link: z.string().url().or(z.literal("")).optional(),
+    showPhotoOnTile: z.boolean().default(true).optional(),
+    isPrivate: z.boolean().default(false).optional(),
+});
 
 async function fulfillOrder(paymentId: string) {
   await prisma.$transaction(async (tx) => {
@@ -148,6 +150,8 @@ async function fulfillOrder(paymentId: string) {
         pricePaid: order.amount,
         currency: order.currency,
         paymentId,
+        showPhotoOnTile: order.showPhotoOnTile ?? true,
+        isPrivate: order.isPrivate ?? false,
       },
     });
 
@@ -164,9 +168,9 @@ async function fulfillOrder(paymentId: string) {
         action: order.isGift ? "gifted" : "claimed",
         actorName,
         initial: actorName.trim().charAt(0).toUpperCase(),
-        imageUrl: order.imageUrl || null,
+        imageUrl: claim.showPhotoOnTile ? (order.imageUrl || null) : null,
         dateLabel,
-        title: order.title,
+        title: claim.isPrivate ? "Private Dedication" : order.title,
         price: order.amount / 100,
         currency: order.currency,
       },
@@ -176,16 +180,18 @@ async function fulfillOrder(paymentId: string) {
       claim: {
         name: claim.ownerName,
         initial: claim.initial,
-        imageUrl: claim.imageUrl || undefined,
+        imageUrl: claim.showPhotoOnTile ? (claim.imageUrl || undefined) : undefined,
         senderName: claim.senderName || undefined,
         isGift: claim.isGift,
         title: claim.title,
-        story: claim.story,
+        story: claim.isPrivate ? "Private Dedication" : claim.story,
         category: claim.category,
-        link: claim.link || undefined,
+        link: claim.isPrivate ? undefined : (claim.link || undefined),
         price: claim.pricePaid / 100,
         currency: claim.currency,
         certificateId: claim.certificateId,
+        showPhotoOnTile: claim.showPhotoOnTile,
+        isPrivate: claim.isPrivate,
         claimedAt: claim.claimedAt.toLocaleDateString("en-GB", {
           month: "short",
           day: "numeric",
@@ -248,7 +254,7 @@ app.use(
     cors({
         origin: true,
         credentials: true,
-        methods: ["GET", "POST", "OPTIONS"],
+        methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     })
 );
 
@@ -311,6 +317,8 @@ app.get("/api/dates", async (req: Request, res: Response) => {
                         pricePaid: true,
                         certificateId: true,
                         claimedAt: true,
+                        showPhotoOnTile: true,
+                        isPrivate: true,
                     }
                 }
             },
@@ -329,15 +337,17 @@ app.get("/api/dates", async (req: Request, res: Response) => {
                 ownedDates[d.dateKey] = {
                     name: d.claim.ownerName,
                     initial: d.claim.initial,
-                    imageUrl: d.claim.imageUrl || undefined,
+                    imageUrl: d.claim.showPhotoOnTile ? (d.claim.imageUrl || undefined) : undefined,
                     senderName: d.claim.senderName || undefined,
                     isGift: d.claim.isGift,
                     title: d.claim.title,
-                    story: d.claim.story,
+                    story: d.claim.isPrivate ? "Private Dedication" : d.claim.story,
                     category: d.claim.category,
-                    link: d.claim.link || undefined,
+                    link: d.claim.isPrivate ? undefined : (d.claim.link || undefined),
                     price: d.claim.pricePaid/100, //convert paisa to rupees
                     certificateId: d.claim.certificateId,
+                    showPhotoOnTile: d.claim.showPhotoOnTile,
+                    isPrivate: d.claim.isPrivate,
                     claimedAt: d.claim.claimedAt.toLocaleDateString("en-GB", {
                         month: "short",
                         day: "numeric",
@@ -363,6 +373,7 @@ app.get("/api/dates", async (req: Request, res: Response) => {
 app.get("/api/dates/:dateKey", async (req: Request<{ dateKey: string }>, res: Response) => {
     const {dateKey} = req.params;
     const paymentId = req.query.payment_id as string | undefined;
+    const queryEmail = (req.query.email as string | undefined)?.toLowerCase().trim();
 
     try{
         let claim = await prisma.claim.findUnique({
@@ -388,8 +399,40 @@ app.get("/api/dates/:dateKey", async (req: Request<{ dateKey: string }>, res: Re
         if(!claim){
             return res.status(404).json({ error: "No claim found for this date" });
         }
+
+        const isOwner = Boolean(queryEmail && claim.buyerEmail.toLowerCase().trim() === queryEmail);
+
+        // If private and not the verified owner, return privacy-protected view
+        if (claim.isPrivate && !isOwner) {
+            return res.json({
+                dateKey: claim.dateKey,
+                isPrivate: true,
+                owner: {
+                    name: claim.ownerName,
+                    initial: claim.initial,
+                    imageUrl: claim.showPhotoOnTile ? (claim.imageUrl || undefined) : undefined,
+                    senderName: claim.senderName || undefined,
+                    isGift: claim.isGift,
+                    title: "Private Dedication",
+                    story: "This date's story and certificate have been set to private by the owner.",
+                    category: claim.category,
+                    price: claim.pricePaid / 100,
+                    certificateId: claim.certificateId,
+                    showPhotoOnTile: claim.showPhotoOnTile,
+                    isPrivate: true,
+                    claimedAt: claim.claimedAt.toLocaleDateString("en-GB", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric"
+                    }),
+                }
+            });
+        }
+
         res.json({
             dateKey: claim.dateKey,
+            isPrivate: claim.isPrivate,
+            isOwner,
             owner:{
                 name : claim.ownerName,
                 initial : claim.initial,
@@ -402,6 +445,9 @@ app.get("/api/dates/:dateKey", async (req: Request<{ dateKey: string }>, res: Re
                 link : claim.link || undefined,
                 price : claim.pricePaid/100,
                 certificateId: claim.certificateId,
+                showPhotoOnTile: claim.showPhotoOnTile,
+                isPrivate: claim.isPrivate,
+                buyerEmail: isOwner ? claim.buyerEmail : undefined,
                 claimedAt : claim.claimedAt.toLocaleDateString("en-GB",{
                     month : "short",
                     day : "numeric",
@@ -414,6 +460,70 @@ app.get("/api/dates/:dateKey", async (req: Request<{ dateKey: string }>, res: Re
         res.status(500).json({ error: "Failed to fetch certificate" });
     }
 })
+
+// PATCH & POST /api/claim/settings - Allows verified owners to update visibility toggles anytime
+const handleClaimSettings = async (req: Request, res: Response) => {
+    const { dateKey, email, showPhotoOnTile, isPrivate } = req.body;
+    if (!dateKey || !email) {
+        return res.status(400).json({ error: "dateKey and email are required" });
+    }
+
+    try {
+        const claim = await prisma.claim.findUnique({ where: { dateKey } });
+        if (!claim) {
+            return res.status(404).json({ error: "Date claim not found" });
+        }
+
+        if (claim.buyerEmail.toLowerCase().trim() !== email.toLowerCase().trim()) {
+            return res.status(403).json({ error: "Unauthorized. Email does not match the registered owner." });
+        }
+
+        const updated = await prisma.claim.update({
+            where: { dateKey },
+            data: {
+                ...(typeof showPhotoOnTile === "boolean" ? { showPhotoOnTile } : {}),
+                ...(typeof isPrivate === "boolean" ? { isPrivate } : {}),
+            },
+        });
+
+        // Broadcast real-time update to all calendar clients
+        io.emit("date_updated", {
+            dateKey,
+            claim: {
+                name: updated.ownerName,
+                initial: updated.initial,
+                imageUrl: updated.showPhotoOnTile ? (updated.imageUrl || undefined) : undefined,
+                senderName: updated.senderName || undefined,
+                isGift: updated.isGift,
+                title: updated.title,
+                story: updated.isPrivate ? "Private Dedication" : updated.story,
+                category: updated.category,
+                link: updated.isPrivate ? undefined : (updated.link || undefined),
+                price: updated.pricePaid / 100,
+                currency: updated.currency,
+                certificateId: updated.certificateId,
+                showPhotoOnTile: updated.showPhotoOnTile,
+                isPrivate: updated.isPrivate,
+                claimedAt: updated.claimedAt.toLocaleDateString("en-GB", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                }),
+            },
+        });
+
+        res.json({
+            success: true,
+            showPhotoOnTile: updated.showPhotoOnTile,
+            isPrivate: updated.isPrivate,
+        });
+    } catch (err: any) {
+        console.error("Error updating claim settings:", err);
+        res.status(500).json({ error: err.message || "Failed to update settings" });
+    }
+};
+app.patch("/api/claim/settings", handleClaimSettings);
+app.post("/api/claim/settings", handleClaimSettings);
 
 // 3. GET /api/activities
 // Returns recent 10 events for the live activity feed
@@ -523,6 +633,8 @@ app.post("/api/payment/create-order", async (req: Request, res: Response) => {
         story: data.story,
         category: data.category,
         link: data.link || null,
+        showPhotoOnTile: data.showPhotoOnTile ?? true,
+        isPrivate: data.isPrivate ?? false,
       },
     });
 
