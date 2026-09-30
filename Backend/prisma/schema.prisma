@@ -27,6 +27,8 @@ model Claim {
   initial         String     @db.VarChar(5)
   isGift          Boolean    @default(false)
   senderName      String?    @db.VarChar(100)
+  recipientEmail  String?    @db.VarChar(255)
+  giftNote        String?
   buyerEmail      String     @db.VarChar(255)
   title           String     @db.VarChar(200)
   story           String
@@ -56,6 +58,8 @@ model Order {
   name            String        @db.VarChar(100)
   isGift          Boolean       @default(false)
   senderName      String?       @db.VarChar(100)
+  recipientEmail  String?       @db.VarChar(255)
+  giftNote        String?
   buyerEmail      String        @db.VarChar(255)
   title           String        @db.VarChar(200)
   story           String

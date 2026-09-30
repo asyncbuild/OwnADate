@@ -14,11 +14,17 @@ import {
   Clock, 
   X,
   ShieldCheck,
-  AlertCircle 
+  AlertCircle,
+  Calendar,
+  CalendarPlus,
+  FileText,
+  Image as ImageIcon,
+  ChevronDown 
 } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { toPng } from "html-to-image";
 import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import type { DateOwner } from "../../types/calendar";
 import { apiUrl } from "../../config/api";
 import { formatDate } from "../../utils/calendar";
@@ -42,6 +48,9 @@ export function DateCertificatePage({
   const certificateRef = useRef<HTMLDivElement>(null);
   const scaleContainerRef = useRef<HTMLDivElement>(null);
   const [certScale, setCertScale] = useState(1);
+
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
 
   const [certificateOwner, setCertificateOwner] = useState<DateOwner | null>(
     owner || null
@@ -250,6 +259,170 @@ export function DateCertificatePage({
     }
   };
 
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/date/${dateKey}`;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  const handleDownloadPNG = async () => {
+    if (!certificateRef.current || !certificateOwner) return;
+    setDownloading(true);
+    try {
+      const dataUrl = await toPng(certificateRef.current, {
+        quality: 1.0,
+        pixelRatio: 2,
+        cacheBust: true,
+      });
+      const link = document.createElement("a");
+      link.download = `Certificate-${dateKey}-${certificateOwner.certificateId}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: null,
+      });
+      const link = document.createElement("a");
+      link.download = `Certificate-${dateKey}-${certificateOwner.certificateId}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } finally {
+      setDownloading(false);
+      setDownloadMenuOpen(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!certificateRef.current || !certificateOwner) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 3, // 300+ DPI print quality
+        useCORS: true,
+        backgroundColor: null,
+        logging: false,
+      });
+      const imgData = canvas.toDataURL("image/png", 1.0);
+
+      // A4 format in mm (210 x 297)
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 210
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 297
+      const margin = 8; // 8mm margin
+      const imgWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const yPos = Math.max(margin, (pageHeight - imgHeight) / 2);
+
+      pdf.addImage(
+        imgData,
+        "PNG",
+        margin,
+        yPos,
+        imgWidth,
+        Math.min(imgHeight, pageHeight - margin * 2),
+        undefined,
+        "FAST"
+      );
+      pdf.save(`Certificate-${dateKey}-${certificateOwner.certificateId}.pdf`);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
+    } finally {
+      setDownloading(false);
+      setDownloadMenuOpen(false);
+    }
+  };
+
+  const handleAddToGoogleCalendar = () => {
+    if (!certificateOwner) return;
+    const [year, month, day] = dateKey.split("-");
+    const dateFormatted = `${year}${month}${day}`;
+    const title = encodeURIComponent(`${certificateOwner.title} • Own a Date`);
+    const details = encodeURIComponent(
+      `Dedicated to ${certificateOwner.name} on Own a Date!\n\nView permanent certificate: ${window.location.origin}/date/${dateKey}\nCertificate ID: ${certificateOwner.certificateId}`
+    );
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}&dates=${dateFormatted}/${dateFormatted}&recur=RRULE:FREQ=YEARLY`;
+    window.open(url, "_blank");
+    setCalendarModalOpen(false);
+  };
+
+  const handleDownloadICS = () => {
+    if (!certificateOwner) return;
+    const [year, month, day] = dateKey.split("-");
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Own a Date//Certificate Plaque//EN",
+      "CALSCALE:GREGORIAN",
+      "BEGIN:VEVENT",
+      `SUMMARY:${certificateOwner.title} • Own a Date`,
+      `DESCRIPTION:Dedicated to ${certificateOwner.name} on Own a Date.\\n\\nCertificate: ${window.location.origin}/date/${dateKey}\\nCertificate ID: ${certificateOwner.certificateId}`,
+      `DTSTART;VALUE=DATE:${year}${month}${day}`,
+      `DTEND;VALUE=DATE:${year}${month}${day}`,
+      "RRULE:FREQ=YEARLY",
+      "TRANSP:TRANSPARENT",
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ].join("\r\n");
+
+    const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute("download", `OwnADate-${dateKey}.ics`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setCalendarModalOpen(false);
+  };
+
+  useEffect(() => {
+    if (certificateOwner) {
+      const dateFormatted = formatDate(dateKey);
+      document.title = `${certificateOwner.isPrivate ? "Dedicated Memory" : certificateOwner.title} • ${dateFormatted} | Own a Date`;
+
+      const setMeta = (prop: string, content: string) => {
+        let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
+        if (!el) {
+          el = document.createElement("meta");
+          el.setAttribute(prop.startsWith("twitter:") ? "name" : "property", prop);
+          document.head.appendChild(el);
+        }
+        el.setAttribute("content", content);
+      };
+
+      setMeta("og:title", `${certificateOwner.isPrivate ? "Dedicated Memory" : certificateOwner.title} • ${dateFormatted}`);
+      setMeta(
+        "og:description",
+        certificateOwner.isPrivate
+          ? `View the permanently claimed date plaque for ${dateFormatted}.`
+          : `Dedicated to ${certificateOwner.name}: "${certificateOwner.story.slice(0, 140)}..."`
+      );
+      setMeta("og:image", apiUrl(`/api/og/${dateKey}`));
+      setMeta("twitter:card", "summary_large_image");
+      setMeta("twitter:image", apiUrl(`/api/og/${dateKey}`));
+    }
+  }, [certificateOwner, dateKey]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#ebe8df] px-6 text-center">
@@ -318,64 +491,6 @@ export function DateCertificatePage({
   }
 
   const certificate = certificateOwner;
-
-  const handleShare = () => {
-    const shareUrl = `${window.location.origin}/date/${dateKey}`;
-    if (navigator.share) {
-      navigator.share({
-        title: `${certificate.name}'s Date - ${formatDate(dateKey)}`,
-        text: `Check out ${certificate.name}'s owned date: "${certificate.title}" on Own a Date!`,
-        url: shareUrl,
-      });
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
-  };
-
-  const handleDownload = async () => {
-    if (!certificateRef.current || downloading) return;
-    setDownloading(true);
-
-    try {
-      const element = certificateRef.current;
-      const dataUrl = await toPng(element, {
-        quality: 1.0,
-        canvasWidth: 1240,
-        canvasHeight: 1754,
-        cacheBust: true,
-      });
-
-      const link = document.createElement("a");
-      link.download = `OwnADate_Certificate_${dateKey}_${theme.toUpperCase()}.png`;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.warn("toPng failed, trying html2canvas fallback:", err);
-      try {
-        const canvas = await html2canvas(certificateRef.current, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: false,
-          logging: false,
-        });
-        const dataUrl = canvas.toDataURL("image/png");
-        const link = document.createElement("a");
-        link.download = `OwnADate_Certificate_${dateKey}_${theme.toUpperCase()}.png`;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (fallbackErr) {
-        console.error("All certificate download methods failed:", fallbackErr);
-      }
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   // Dynamic Theme Preset Configuration (Minimal & Dark)
   const t = {
@@ -526,8 +641,8 @@ export function DateCertificatePage({
           </div>
         </div>
 
-        {/* Row 2: Actions Toolbar - 2x2 Grid on Mobile, Flex on Desktop */}
-        <div className="grid grid-cols-2 sm:flex sm:items-center sm:gap-2 w-full">
+        {/* Row 2: Actions Toolbar - Responsive Grid on Mobile, Flex on Desktop */}
+        <div className="flex flex-wrap items-center gap-2 w-full">
           {/* Action 1: Owner Privacy Controls */}
           {isOwner ? (
             <button
@@ -535,7 +650,7 @@ export function DateCertificatePage({
                 setSettingsError(null);
                 setSettingsModalOpen(true);
               }}
-              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur transition hover:border-black hover:bg-black hover:text-white cursor-pointer w-full sm:w-auto"
+              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur transition hover:border-black hover:bg-black hover:text-white cursor-pointer flex-1 sm:flex-initial"
             >
               <Settings size={13} className="shrink-0" />
               <span className="truncate">Privacy Settings</span>
@@ -543,7 +658,7 @@ export function DateCertificatePage({
           ) : certificate.isPrivate ? (
             <button
               onClick={() => setVerifyModalOpen(true)}
-              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-black px-3.5 text-xs font-bold text-white shadow-xs transition hover:bg-black/80 cursor-pointer w-full sm:w-auto"
+              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-black px-3.5 text-xs font-bold text-white shadow-xs transition hover:bg-black/80 cursor-pointer flex-1 sm:flex-initial"
             >
               <Unlock size={13} className="shrink-0" />
               <span className="truncate">Unlock as Owner</span>
@@ -551,7 +666,7 @@ export function DateCertificatePage({
           ) : (
             <button
               onClick={() => setVerifyModalOpen(true)}
-              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-600 shadow-xs transition hover:text-black hover:border-black cursor-pointer w-full sm:w-auto"
+              className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-600 shadow-xs transition hover:text-black hover:border-black cursor-pointer flex-1 sm:flex-initial"
               title="Are you the owner of this date?"
             >
               <Settings size={13} className="shrink-0" />
@@ -559,21 +674,30 @@ export function DateCertificatePage({
             </button>
           )}
 
-          {/* Action 2: WhatsApp Direct Share */}
+          {/* Action 2: Add to Calendar */}
+          <button
+            onClick={() => setCalendarModalOpen(true)}
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur transition hover:border-black hover:bg-black hover:text-white cursor-pointer flex-1 sm:flex-initial"
+          >
+            <CalendarPlus size={13} className="shrink-0 text-amber-600" />
+            <span className="truncate">Add to Calendar</span>
+          </button>
+
+          {/* Action 3: WhatsApp Direct Share */}
           <a
             href={`https://api.whatsapp.com/send?text=${encodeURIComponent(`Check out ${certificate.name}'s claimed date: "${certificate.title}" on Own a Date! ✨ ${window.location.origin}/date/${dateKey}`)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-emerald-600/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-500/20 shadow-xs cursor-pointer w-full sm:w-auto"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-emerald-600/25 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-500/20 shadow-xs cursor-pointer flex-1 sm:flex-initial"
           >
             <span>💬</span>
             <span className="truncate">WhatsApp</span>
           </a>
 
-          {/* Action 3: Copy Link */}
+          {/* Action 4: Copy Link */}
           <button
             onClick={handleShare}
-            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur transition hover:border-black hover:bg-black hover:text-white cursor-pointer w-full sm:w-auto"
+            className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3 text-xs font-semibold text-neutral-800 shadow-xs backdrop-blur transition hover:border-black hover:bg-black hover:text-white cursor-pointer flex-1 sm:flex-initial"
           >
             {copied ? (
               <Check size={13} className="text-emerald-500 shrink-0" />
@@ -583,16 +707,66 @@ export function DateCertificatePage({
             <span className="truncate">{copied ? "Copied!" : "Copy Link"}</span>
           </button>
 
-          {/* Action 4: Download Certificate */}
-          <button
-            onClick={handleDownload}
-            disabled={downloading}
-            className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-black px-4 text-xs font-bold text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 cursor-pointer whitespace-nowrap w-full sm:w-auto sm:ml-auto shrink-0"
-          >
-            <Download size={13} className={`shrink-0 ${downloading ? "animate-bounce" : ""}`} />
-            <span className="sm:hidden">Download</span>
-            <span className="hidden sm:inline">{downloading ? "Downloading..." : "Download Certificate"}</span>
-          </button>
+          {/* Action 5: Download Certificate (PNG / PDF Menu) */}
+          <div className="relative ml-auto w-full sm:w-auto">
+            <button
+              onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
+              disabled={downloading}
+              className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-black px-4 text-xs font-bold text-white shadow-sm transition hover:bg-neutral-800 disabled:opacity-50 cursor-pointer whitespace-nowrap w-full sm:w-auto shrink-0"
+            >
+              <Download size={13} className={`shrink-0 ${downloading ? "animate-bounce" : ""}`} />
+              <span>{downloading ? "Generating..." : "Download Plaque"}</span>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${downloadMenuOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {/* Download Format Dropdown Menu */}
+            {downloadMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setDownloadMenuOpen(false)}
+                />
+                <div className="absolute right-0 top-11 z-50 w-64 rounded-2xl border border-black/10 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150">
+                  <div className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-black/40">
+                    Select Download Format
+                  </div>
+                  
+                  <button
+                    onClick={handleDownloadPNG}
+                    disabled={downloading}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-neutral-800 transition hover:bg-black/5 cursor-pointer"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-black/5 text-neutral-700">
+                      <ImageIcon size={15} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-black">Download as PNG</div>
+                      <div className="text-[11px] text-black/50">High-res image for digital display</div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={handleDownloadPDF}
+                    disabled={downloading}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-neutral-800 transition hover:bg-black/5 cursor-pointer"
+                  >
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-700">
+                      <FileText size={15} />
+                    </div>
+                    <div>
+                      <div className="font-bold text-black flex items-center gap-1.5">
+                        <span>Printable A4 PDF</span>
+                        <span className="rounded-full bg-amber-100 px-1.5 py-0.2 text-[9px] font-extrabold text-amber-800">
+                          300 DPI
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-black/50">Vector framing quality for gifts</div>
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1145,6 +1319,101 @@ export function DateCertificatePage({
               >
                 {savingSettings ? <Loader2 size={13} className="animate-spin" /> : null}
                 <span>{savingSettings ? "Saving..." : "Save Changes"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================
+          MODAL 3: ADD TO GOOGLE / APPLE CALENDAR
+      ========================================================== */}
+      {calendarModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+          onClick={() => setCalendarModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl animate-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/10 text-amber-700">
+                  <Calendar size={16} />
+                </span>
+                <h3 className="text-base font-black text-black">Annual Date Reminder</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCalendarModalOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-[#f4f4f1] text-black/60 hover:bg-black hover:text-white transition"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <p className="mt-2 text-xs text-black/60 leading-relaxed">
+              Never forget your special date! Add an annual recurring event to your calendar with direct link to this certificate plaque:
+            </p>
+
+            <div className="mt-4 space-y-2.5">
+              {/* Option 1: Google Calendar */}
+              <button
+                type="button"
+                onClick={handleAddToGoogleCalendar}
+                className="flex w-full items-center justify-between rounded-2xl border border-black/10 bg-[#fafaf8] p-3.5 text-left transition hover:border-black/30 hover:bg-[#f3f3f0] cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-xs text-lg">
+                    📅
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-black group-hover:text-black">
+                      Google Calendar
+                    </div>
+                    <div className="text-[11px] text-black/50">
+                      Opens Google Calendar with yearly recurrence
+                    </div>
+                  </div>
+                </div>
+                <span className="rounded-full bg-black/5 px-2.5 py-1 text-[10px] font-bold text-black/70">
+                  1-Click
+                </span>
+              </button>
+
+              {/* Option 2: Apple Calendar / Outlook / iCal */}
+              <button
+                type="button"
+                onClick={handleDownloadICS}
+                className="flex w-full items-center justify-between rounded-2xl border border-black/10 bg-[#fafaf8] p-3.5 text-left transition hover:border-black/30 hover:bg-[#f3f3f0] cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-xs text-lg">
+                    🍏
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-black group-hover:text-black">
+                      Apple Calendar / Outlook (.ics)
+                    </div>
+                    <div className="text-[11px] text-black/50">
+                      Download standard recurring iCal file
+                    </div>
+                  </div>
+                </div>
+                <span className="rounded-full bg-black/5 px-2.5 py-1 text-[10px] font-bold text-black/70">
+                  Download .ics
+                </span>
+              </button>
+            </div>
+
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={() => setCalendarModalOpen(false)}
+                className="w-full rounded-xl border border-black/10 bg-[#f7f7f5] py-2.5 text-xs font-bold text-black/70 hover:bg-black/5 transition"
+              >
+                Close
               </button>
             </div>
           </div>

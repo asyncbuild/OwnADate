@@ -72,8 +72,11 @@ export function DateModal({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isScanningImage, setIsScanningImage] = useState(false);
-  const [imageError, setImageError] = useState<string | null>(null);
   const [isImageVerified, setIsImageVerified] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [notifyRecipient, setNotifyRecipient] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [giftNote, setGiftNote] = useState("");
   const [currency, setCurrency] = useState<"INR" | "USD">(initialCurrency || "INR");
   const [showPhotoOnTile, setShowPhotoOnTile] = useState(true);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -176,8 +179,17 @@ export function DateModal({
     setImageError(null);
     setIsImageVerified(false);
 
-    if (file.size > 3 * 1024 * 1024) {
-      setImageError("Image size must be under 3MB");
+    // 1. Strict File Type Check
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
+      setImageError("Invalid file type. Please select a genuine JPG, PNG, WebP, or GIF image.");
+      e.target.value = "";
+      return;
+    }
+
+    // 2. Strict File Size Check (Max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Image size exceeds 5MB limit. Please choose a photo under 5MB.");
       e.target.value = "";
       return;
     }
@@ -249,6 +261,8 @@ export function DateModal({
           imageUrl: uploadedImageUrl || undefined,
           currency,
           senderName: isGift ? senderName.trim() : undefined,
+          recipientEmail: isGift && notifyRecipient && recipientEmail ? recipientEmail.trim() : undefined,
+          giftNote: isGift && notifyRecipient && giftNote ? giftNote.trim() : undefined,
           buyerEmail: buyerEmail.trim(),
           title: title.trim(),
           story: story.trim(),
@@ -431,6 +445,58 @@ export function DateModal({
                 />
               </div>
 
+              {isGift && (
+                <div className="rounded-2xl border border-rose-500/20 bg-rose-500/[0.03] p-3.5 space-y-2.5 transition animate-in fade-in duration-200">
+                  <label className="flex items-start justify-between gap-2 cursor-pointer">
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-rose-950">
+                        <Gift size={13} className="text-rose-500" />
+                        <span>Send Gift Reveal Email to Recipient</span>
+                      </div>
+                      <p className="text-[11px] text-black/50 leading-tight mt-0.5">
+                        We'll send a beautiful gift card notification with your personal note once claimed.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={notifyRecipient}
+                      onChange={(e) => setNotifyRecipient(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded accent-rose-600 cursor-pointer"
+                    />
+                  </label>
+
+                  {notifyRecipient && (
+                    <div className="space-y-2 pt-2 border-t border-rose-500/15 animate-in fade-in duration-150">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
+                          Recipient's Email Address *
+                        </label>
+                        <input
+                          type="email"
+                          required={notifyRecipient}
+                          placeholder="recipient@example.com"
+                          value={recipientEmail}
+                          onChange={(e) => setRecipientEmail(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3.5 py-2 text-xs font-semibold focus:border-rose-500 focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
+                          Personal Gift Message / Note (Optional)
+                        </label>
+                        <textarea
+                          rows={2}
+                          placeholder="Write a sweet message to appear in their gift email..."
+                          value={giftNote}
+                          onChange={(e) => setGiftNote(e.target.value)}
+                          className="mt-1 w-full rounded-xl border border-black/10 bg-white px-3.5 py-2 text-xs font-medium focus:border-rose-500 focus:outline-none resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
                 <div>
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] font-bold uppercase tracking-wider text-black/40">
@@ -500,7 +566,7 @@ export function DateModal({
                   ) : (
                     <label className="mt-1.5 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-black/20 bg-[#fafaf8] py-3 text-xs font-semibold text-black/60 transition hover:border-black/50 hover:bg-white">
                       <Upload size={14} />
-                      <span>Upload a Photo</span>
+                      <span>Upload a Photo (Max 5MB • JPG, PNG, WEBP)</span>
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp,image/gif"
